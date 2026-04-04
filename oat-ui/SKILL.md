@@ -1,6 +1,6 @@
 ---
-name: simple-ui
-description: help user create a simple web UI using semantic html tag for a quick web prototype
+name: oat-ui
+description: guide to implement oat-ui, help user create a simple web UI using semantic html tag for a quick web prototype
 ---
 
 # Oat UI — Component Library Skill
