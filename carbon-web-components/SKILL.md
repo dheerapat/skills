@@ -181,6 +181,37 @@ Events: `cds-dropdown-beingselected`, `cds-dropdown-selected`
 
 ---
 
+### Form
+
+`cds-form` is a thin wrapper that adds Carbon styling to a native `<form>`. Use `cds-form-group` for logical groupings of fields (renders a `<fieldset>`).
+
+```html
+<cds-form id="my-form">
+  <cds-stack gap="7">
+
+    <!-- Group checkboxes under a legend -->
+    <cds-form-group legend-text="Notifications">
+      <cds-checkbox default-checked>Email alerts</cds-checkbox>
+      <cds-checkbox>SMS alerts</cds-checkbox>
+      <cds-checkbox disabled>Push notifications (disabled)</cds-checkbox>
+    </cds-form-group>
+
+    <cds-text-input label="Full name" placeholder="Jane Doe"></cds-text-input>
+
+    <cds-button type="submit">Submit</cds-button>
+
+  </cds-stack>
+</cds-form>
+```
+
+Key attributes on `cds-form-group`: `legend-text`  
+Key attributes on `cds-form`: inherits all native `<form>` attributes (`action`, `method`, etc.)  
+Note: `cds-checkbox` accepts its label as **slot content** (e.g. `<cds-checkbox>Label</cds-checkbox>`) **or** via `label-text` attribute.
+
+CDN: `form.min.js`
+
+---
+
 ### Form Elements
 
 **Text Input:**
@@ -225,8 +256,7 @@ Key attributes: `label`, `placeholder`, `type`, `value`, `disabled`, `readonly`,
 
 **Select:**
 ```html
-<cds-select label="Country" helper-text="Select your country">
-  <cds-select-item value="">Choose a country</cds-select-item>
+<cds-select label-text="Country" helper-text="Select your country" placeholder="Choose a country">
   <cds-select-item value="us">United States</cds-select-item>
   <cds-select-item value="uk">United Kingdom</cds-select-item>
 </cds-select>
@@ -312,6 +342,118 @@ Key attributes: `label`, `placeholder`, `type`, `value`, `disabled`, `readonly`,
   </cds-time-picker-select>
 </cds-time-picker>
 ```
+
+---
+
+### File Uploader
+
+```html
+<!-- Button variant (click to browse) -->
+<cds-file-uploader
+  label-title="Upload files"
+  label-description="Max file size is 500 MB. Only .jpg files are supported."
+  icon-description="Dismiss file">
+  <cds-file-uploader-button
+    accept="image/jpeg"
+    name="my-upload"
+    button-kind="primary"
+    size="md"
+    multiple>
+    Add file
+  </cds-file-uploader-button>
+</cds-file-uploader>
+
+<!-- Drag-and-drop variant -->
+<cds-file-uploader
+  label-title="Upload files"
+  label-description="Max file size is 1 MB. Supported file types are .jpg and .png.">
+  <cds-file-uploader-drop-container
+    accept=".jpg .png"
+    multiple
+    name="drop-upload">
+    Drag and drop files here or click to upload
+  </cds-file-uploader-drop-container>
+</cds-file-uploader>
+```
+
+Key attributes on `cds-file-uploader`: `label-title`, `label-description`, `icon-description`, `disabled`  
+Key attributes on `cds-file-uploader-button`: `accept`, `name`, `button-kind`, `size`, `multiple`, `disabled`  
+Key attributes on `cds-file-uploader-drop-container`: `accept`, `multiple`, `name`, `disabled`  
+Key attributes on `cds-file-uploader-item`: `state` (uploading|edit|complete), `invalid`, `size`, `icon-description`, `error-subject`, `error-body`  
+Events: `cds-file-uploader-button-changed`, `cds-file-uploader-drop-container-changed`, `cds-file-uploader-item-beingdeleted`, `cds-file-uploader-item-deleted`
+
+CDN: `file-uploader.min.js`
+
+---
+
+### Password Input
+
+A dedicated password input with a built-in show/hide toggle button. It extends `cds-text-input` behavior.
+
+```html
+<cds-password-input
+  label="Password"
+  placeholder="Enter password"
+  helper-text="Must be at least 6 characters"
+  show-password-visibility-toggle>
+</cds-password-input>
+
+<!-- Invalid state -->
+<cds-password-input
+  label="Password"
+  invalid
+  invalid-text="Must contain uppercase, lowercase, and a number."
+  show-password-visibility-toggle>
+</cds-password-input>
+```
+
+Key attributes: `label`, `placeholder`, `helper-text` (also slot), `value`, `disabled`, `readonly`, `invalid`, `invalid-text`, `warn`, `warn-text`, `size` (sm|md|lg), `hide-label`, `required`, `pattern`, `autocomplete`, `show-password-visibility-toggle`, `show-password-label`, `hide-password-label`, `tooltip-position`, `tooltip-alignment`, `enable-counter`, `max-count`
+
+CDN: `password-input.min.js`
+
+---
+
+### Combo Box
+
+Filterable single-select dropdown. The user can type to filter items.
+
+```html
+<cds-combo-box
+  title-text="Select a fruit"
+  label="Filter..."
+  helper-text="Pick one from the list"
+  value="">
+  <cds-combo-box-item value="apple">Apple</cds-combo-box-item>
+  <cds-combo-box-item value="banana">Banana</cds-combo-box-item>
+  <cds-combo-box-item value="cherry">Cherry</cds-combo-box-item>
+  <cds-combo-box-item value="date" disabled>Date (disabled)</cds-combo-box-item>
+</cds-combo-box>
+```
+
+Key attributes on `cds-combo-box`: `title-text`, `label` (placeholder), `value`, `helper-text`, `invalid`, `invalid-text`, `warn`, `warn-text`, `disabled`, `read-only`, `size` (sm|md|lg), `direction` (top|bottom), `allow-custom-value`, `typeahead`  
+Events: `cds-combo-box-selected`, `cds-combo-box-beingselected`, `cds-combo-box-toggled`
+
+CDN: `combo-box.min.js`
+
+---
+
+### Content Switcher
+
+Toggle between content sections. Similar to tabs but for in-place content switching.
+
+```html
+<cds-content-switcher value="section-1">
+  <cds-content-switcher-item value="section-1">First section</cds-content-switcher-item>
+  <cds-content-switcher-item value="section-2">Second section</cds-content-switcher-item>
+  <cds-content-switcher-item value="section-3" disabled>Third (disabled)</cds-content-switcher-item>
+</cds-content-switcher>
+```
+
+Key attributes on `cds-content-switcher`: `value`, `size` (sm|md|lg), `selected-index`, `selection-mode` (automatic|manual), `icon`, `low-contrast`  
+Key attributes on `cds-content-switcher-item`: `value`, `disabled`, `target` (element ID of target panel)  
+Events: `cds-content-switcher-selected`, `cds-content-switcher-beingselected`
+
+CDN: `content-switcher.min.js`
 
 ---
 
@@ -617,6 +759,544 @@ Events: `cds-pagination-changed-current`, `cds-page-sizes-select-changed`
 
 ---
 
+### Menu / Menu Button
+
+Context menus and trigger-based dropdown menus.
+
+```html
+<!-- Menu Button (trigger + dropdown menu) -->
+<cds-menu-button label="Actions">
+  <cds-menu-item label="Edit"></cds-menu-item>
+  <cds-menu-item label="Duplicate"></cds-menu-item>
+  <cds-menu-item-divider></cds-menu-item-divider>
+  <cds-menu-item label="Delete" kind="danger"></cds-menu-item>
+</cds-menu-button>
+
+<!-- Standalone menu (attach to your own trigger) -->
+<cds-menu open x="100" y="200">
+  <cds-menu-item label="Copy"></cds-menu-item>
+  <cds-menu-item label="Paste"></cds-menu-item>
+  <cds-menu-item label="Select all" shortcut="⌘A"></cds-menu-item>
+</cds-menu>
+```
+
+Key attributes on `cds-menu-button`: `label`, `kind` (primary|secondary|ghost|tertiary|danger), `size` (sm|md|lg), `open`, `menu-alignment`  
+Key attributes on `cds-menu-item`: `label`, `shortcut`, `kind` (default|danger), `disabled`, `selected`  
+Key attributes on `cds-menu`: `open`, `x`, `y`, `size` (sm|md|lg)  
+Events: `cds-menu-item-clicked`, `cds-menu-closed`
+
+CDN: `menu.min.js`, `menu-button.min.js`
+
+---
+
+### Icon Button
+
+A button with only an icon (and a tooltip for accessibility).
+
+```html
+<cds-icon-button kind="primary" tooltip-text="Add item" tooltip-position="bottom">
+  <svg slot="icon" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16">
+    <path d="M17 15V8h-2v7H8v2h7v7h2v-7h7v-2z"/>
+  </svg>
+</cds-icon-button>
+```
+
+Key attributes: `kind` (primary|secondary|ghost|tertiary|danger), `size` (sm|md|lg), `tooltip-text`, `tooltip-position` (top|right|bottom|left), `tooltip-alignment` (start|center|end), `disabled`, `href`
+
+CDN: `icon-button.min.js`
+
+---
+
+### Tile
+
+Tiles are flexible containers for card-like content.
+
+```html
+<!-- Default (static) tile -->
+<cds-tile>Some content</cds-tile>
+
+<!-- Clickable tile (navigates on click) -->
+<cds-clickable-tile href="/detail">
+  <h4>Clickable tile</h4>
+  <p>Click to navigate</p>
+</cds-clickable-tile>
+
+<!-- Selectable tile (like a radio button) -->
+<cds-selectable-tile name="tile-group" value="option-a">
+  Option A
+</cds-selectable-tile>
+<cds-selectable-tile name="tile-group" value="option-b" selected>
+  Option B (selected)
+</cds-selectable-tile>
+
+<!-- Expandable tile -->
+<cds-expandable-tile>
+  <cds-tile-above-the-fold-content slot="above-the-fold-content">
+    Above the fold content
+  </cds-tile-above-the-fold-content>
+  <cds-tile-below-the-fold-content>
+    Below the fold content (shown when expanded)
+  </cds-tile-below-the-fold-content>
+</cds-expandable-tile>
+```
+
+Key attributes on `cds-tile`: `color-scheme` (light|regular)  
+Key attributes on `cds-clickable-tile`: `href`, `disabled`, `color-scheme`  
+Key attributes on `cds-selectable-tile`: `name`, `value`, `selected`, `disabled`  
+Key attributes on `cds-expandable-tile`: `expanded`, `with-interactive`
+
+CDN: `tile.min.js`
+
+---
+
+### Structured List
+
+Read-only structured list for presenting key/value or tabular data without full table overhead.
+
+```html
+<cds-structured-list>
+  <cds-structured-list-head>
+    <cds-structured-list-header-row>
+      <cds-structured-list-header-cell>Column A</cds-structured-list-header-cell>
+      <cds-structured-list-header-cell>Column B</cds-structured-list-header-cell>
+      <cds-structured-list-header-cell>Column C</cds-structured-list-header-cell>
+    </cds-structured-list-header-row>
+  </cds-structured-list-head>
+  <cds-structured-list-body>
+    <cds-structured-list-row>
+      <cds-structured-list-cell>Row 1, Cell 1</cds-structured-list-cell>
+      <cds-structured-list-cell>Row 1, Cell 2</cds-structured-list-cell>
+      <cds-structured-list-cell>Row 1, Cell 3</cds-structured-list-cell>
+    </cds-structured-list-row>
+    <cds-structured-list-row>
+      <cds-structured-list-cell>Row 2, Cell 1</cds-structured-list-cell>
+      <cds-structured-list-cell>Row 2, Cell 2</cds-structured-list-cell>
+      <cds-structured-list-cell>Row 2, Cell 3</cds-structured-list-cell>
+    </cds-structured-list-row>
+  </cds-structured-list-body>
+</cds-structured-list>
+
+<!-- Selectable variant -->
+<cds-structured-list selection>
+  <cds-structured-list-body>
+    <cds-structured-list-row value="row-1" selected>
+      <cds-structured-list-cell>Option 1</cds-structured-list-cell>
+    </cds-structured-list-row>
+    <cds-structured-list-row value="row-2">
+      <cds-structured-list-cell>Option 2</cds-structured-list-cell>
+    </cds-structured-list-row>
+  </cds-structured-list-body>
+</cds-structured-list>
+```
+
+Key attributes on `cds-structured-list`: `selection`, `condensed`, `flush`
+
+CDN: `structured-list.min.js`
+
+---
+
+### Ordered / Unordered List
+
+```html
+<!-- Unordered list -->
+<cds-unordered-list>
+  <cds-list-item>Item one</cds-list-item>
+  <cds-list-item>Item two
+    <cds-unordered-list nested>
+      <cds-list-item>Nested item</cds-list-item>
+    </cds-unordered-list>
+  </cds-list-item>
+  <cds-list-item>Item three</cds-list-item>
+</cds-unordered-list>
+
+<!-- Ordered list -->
+<cds-ordered-list>
+  <cds-list-item>First step</cds-list-item>
+  <cds-list-item>Second step</cds-list-item>
+  <cds-list-item>Third step</cds-list-item>
+</cds-ordered-list>
+```
+
+CDN: `unordered-list.min.js`, `ordered-list.min.js`
+
+---
+
+### Pagination Nav
+
+Compact page navigation without per-page size controls.
+
+```html
+<cds-pagination-nav
+  count="10"
+  page="3"
+  pages-shown="5">
+</cds-pagination-nav>
+```
+
+Key attributes: `count` (total pages), `page` (current, 0-indexed), `pages-shown`, `loop`  
+Events: `cds-pagination-nav-changed`
+
+CDN: `pagination-nav.min.js`
+
+---
+
+### Code Snippet
+
+Display inline or block code with copy-to-clipboard functionality.
+
+```html
+<!-- Inline -->
+<cds-code-snippet type="inline">npm install @carbon/web-components</cds-code-snippet>
+
+<!-- Multi-line (block) -->
+<cds-code-snippet type="multi">
+  import '@carbon/web-components/es/components/button/index.js';
+  const btn = document.querySelector('cds-button');
+</cds-code-snippet>
+
+<!-- Single-line (no expand, scrolls) -->
+<cds-code-snippet type="single">docker run -p 3000:3000 my-image:latest</cds-code-snippet>
+```
+
+Key attributes: `type` (inline|single|multi), `disabled`, `feedback` (tooltip text after copy), `min-collapsed-number-of-rows`, `max-collapsed-number-of-rows`, `wrap-text`  
+Event: `cds-code-snippet-copied`
+
+CDN: `code-snippet.min.js`
+
+---
+
+### Combo Button
+
+A split button: primary action label + a disclosure button that opens a `cds-menu` with secondary actions.
+
+```html
+<cds-combo-button label="Primary action">
+  <cds-menu>
+    <cds-menu-item label="Second action"></cds-menu-item>
+    <cds-menu-item label="Third action"></cds-menu-item>
+    <cds-menu-item label="Fourth action"></cds-menu-item>
+  </cds-menu>
+</cds-combo-button>
+```
+
+Key attributes (`cds-combo-button`): `label` (primary button text), `disabled`, `size` (sm|md|lg, default lg), `menu-alignment` (top|bottom|top-start|top-end|bottom-start|bottom-end), `tooltip-alignment`, `tooltip-content` (default "Additional actions")
+
+CDN: `combo-button.min.js`
+
+---
+
+### Contained List
+
+A labeled list with optional inset dividers, action slot in header, and clickable/icon items.
+
+```html
+<cds-contained-list label="List title" kind="on-page" size="lg">
+  <cds-contained-list-item>List item</cds-contained-list-item>
+  <cds-contained-list-item>List item</cds-contained-list-item>
+  <cds-contained-list-item disabled>Disabled item</cds-contained-list-item>
+</cds-contained-list>
+
+<!-- Disclosed (inset border) variant -->
+<cds-contained-list label="List title" kind="disclosed">
+  <cds-contained-list-item>List item</cds-contained-list-item>
+</cds-contained-list>
+
+<!-- Clickable items -->
+<cds-contained-list label="Actions">
+  <cds-contained-list-item clickable>Clickable item</cds-contained-list-item>
+</cds-contained-list>
+
+<!-- With actions slot per item -->
+<cds-contained-list label="With actions">
+  <cds-contained-list-item>
+    Item label
+    <cds-icon-button slot="action" label="Dismiss" kind="ghost" size="sm">
+      <!-- close icon SVG -->
+    </cds-icon-button>
+  </cds-contained-list-item>
+</cds-contained-list>
+
+<!-- With expandable search in header action slot -->
+<cds-contained-list label="Searchable list">
+  <cds-search slot="action" expandable placeholder="Search..."></cds-search>
+  <cds-contained-list-item>List item 1</cds-contained-list-item>
+  <cds-contained-list-item>List item 2</cds-contained-list-item>
+</cds-contained-list>
+```
+
+Key attributes (`cds-contained-list`): `label` (header text), `kind` (on-page|disclosed, default on-page), `size` (sm|md|lg|xl), `is-inset` (inset dividers)  
+Key attributes (`cds-contained-list-item`): `clickable`, `disabled`  
+Slots (`cds-contained-list`): `label` (header text), `action` (header action area)  
+Slots (`cds-contained-list-item`): `icon`, `action`  
+Event: `cds-contained-list-item-click`
+
+CDN: `contained-list.min.js`
+
+---
+
+### Copy Button
+
+A standalone icon button that signals copy-to-clipboard with a tooltip feedback message.
+
+```html
+<cds-copy-button feedback="Copied!">Copy to clipboard</cds-copy-button>
+
+<!-- Custom feedback timeout and alignment -->
+<cds-copy-button feedback="Done!" feedback-timeout="3000" align="top">
+  Copy
+</cds-copy-button>
+```
+
+Key attributes: `feedback` (tooltip text shown after click, default "Copied!"), `feedback-timeout` (ms, default 2000), `align` (tooltip alignment, default "bottom"), `disabled`, `auto-align`
+
+CDN: `copy-button.min.js`
+
+---
+
+### Heading
+
+Context-aware heading that automatically infers the correct `h1`–`h6` level based on nesting depth of `<cds-section>` wrappers.
+
+```html
+<!-- Top level: renders h1 -->
+<cds-heading>Page Title</cds-heading>
+
+<!-- Nested sections auto-increment the heading level -->
+<cds-section>
+  <cds-heading>Section heading (h2)</cds-heading>
+  <cds-section>
+    <cds-heading>Subsection heading (h3)</cds-heading>
+  </cds-section>
+</cds-section>
+
+<!-- Override level explicitly -->
+<cds-section level="3">
+  <cds-heading>Always h3 here</cds-heading>
+</cds-section>
+```
+
+No required attributes — heading level is computed from context. `<cds-section>` increments the heading counter for all `<cds-heading>` children.
+
+CDN: `heading.min.js`
+
+---
+
+### Data Table — Advanced Features
+
+Extend the basic `<cds-table>` with sorting, selection, expansion, filtering, and batch actions.
+
+#### Sorting
+
+```html
+<!-- Enable sorting on all columns -->
+<cds-table is-sortable>
+  <cds-table-head>
+    <cds-table-header-row>
+      <cds-table-header-cell>Name</cds-table-header-cell>
+      <cds-table-header-cell>Status</cds-table-header-cell>
+    </cds-table-header-row>
+  </cds-table-head>
+  <cds-table-body>
+    <cds-table-row>
+      <cds-table-cell>Load Balancer 1</cds-table-cell>
+      <cds-table-cell>Active</cds-table-cell>
+    </cds-table-row>
+  </cds-table-body>
+</cds-table>
+
+<!-- Enable sorting on individual columns only -->
+<cds-table-header-cell is-sortable>Name</cds-table-header-cell>
+```
+
+#### Row Selection
+
+```html
+<cds-table is-selectable>
+  <!-- rows get automatic selection-name values -->
+  <cds-table-body>
+    <cds-table-row selection-name="row-1">
+      <cds-table-cell>Load Balancer 1</cds-table-cell>
+    </cds-table-row>
+  </cds-table-body>
+</cds-table>
+```
+
+#### Row Expansion
+
+```html
+<cds-table expandable>
+  <cds-table-body>
+    <cds-table-row expandable>
+      <cds-table-cell>Load Balancer 1</cds-table-cell>
+    </cds-table-row>
+    <cds-table-expanded-row>
+      <cds-table-cell colspan="1">Expanded detail content</cds-table-cell>
+    </cds-table-expanded-row>
+  </cds-table-body>
+</cds-table>
+
+<!-- Expand-all button -->
+<cds-table expandable batch-expansion> ... </cds-table>
+```
+
+#### Toolbar with Filtering
+
+```html
+<cds-table>
+  <cds-table-toolbar slot="toolbar">
+    <cds-table-toolbar-content>
+      <cds-table-toolbar-search placeholder="Filter table"></cds-table-toolbar-search>
+      <cds-button>Add new</cds-button>
+    </cds-table-toolbar-content>
+  </cds-table-toolbar>
+  <!-- head + body -->
+</cds-table>
+```
+
+#### Batch Actions
+
+```html
+<cds-table is-selectable>
+  <cds-table-toolbar slot="toolbar">
+    <cds-table-batch-actions>
+      <cds-button>Delete</cds-button>
+      <cds-button download>Download</cds-button>
+    </cds-table-batch-actions>
+    <cds-table-toolbar-content>
+      <cds-table-toolbar-search placeholder="Filter table"></cds-table-toolbar-search>
+    </cds-table-toolbar-content>
+  </cds-table-toolbar>
+  <!-- head + body -->
+</cds-table>
+```
+
+Key `cds-table` attributes: `is-sortable`, `is-selectable`, `expandable`, `batch-expansion`, `size` (sm|md|lg|xl), `zebra`, `sticky-header`  
+Key `cds-table-header-cell` attributes: `is-sortable`, `sort-direction` (ascending|descending|none)  
+Key `cds-table-row` attributes: `expandable`, `selected`, `selection-name`, `selection-value`
+
+CDN: `data-table.min.js`
+
+---
+
+### AI Label
+
+`cds-ai-label` is an AI transparency badge that acts as a toggletip trigger — clicking it opens a callout explaining what AI-generated content is present.
+
+**Default (standalone) variant:**
+
+```html
+<cds-ai-label>
+  <p slot="body-text">
+    This content was generated by AI. Always review AI-generated output before use.
+  </p>
+  <cds-ai-label-action-button>View details</cds-ai-label-action-button>
+</cds-ai-label>
+```
+
+**Inline variant** (renders inline with text, shows a side label):
+
+```html
+<cds-ai-label kind="inline" ai-text-label="AI-assisted">
+  <p slot="body-text">Explanation of the AI involvement.</p>
+</cds-ai-label>
+```
+
+**Sizes** (`size` attribute): `mini` | `2xs` | `xs` (default) | `sm` | `md` | `lg` | `xl`
+
+**With icon action buttons in the callout:**
+
+```html
+<cds-ai-label alignment="bottom-left">
+  <p slot="body-text">Generated by watsonx.</p>
+  <cds-icon-button slot="actions" kind="ghost" size="sm">
+    <svg slot="icon"><!-- thumbs-up SVG --></svg>
+  </cds-icon-button>
+  <cds-icon-button slot="actions" kind="ghost" size="sm">
+    <svg slot="icon"><!-- thumbs-down SVG --></svg>
+  </cds-icon-button>
+</cds-ai-label>
+```
+
+Key attributes (`cds-ai-label`):
+- `kind` — `default` (default) | `inline`
+- `size` — `mini` | `2xs` | `xs` (default) | `sm` | `md` | `lg` | `xl`
+- `ai-text` — text inside badge, default `"AI"`
+- `ai-text-label` — supplemental text shown beside badge in `inline` kind
+- `alignment` — callout alignment: `top` | `top-left` | `top-right` | `bottom` | `bottom-left` | `bottom-right` | `left` | `left-bottom` | `left-top` | `right` | `right-bottom` | `right-top` (default `"bottom"`)
+- `open` — boolean, controls callout visibility
+- `revert-active` — boolean, shows a revert button in the callout
+- `revert-label` — label for the revert button (default `"Revert to AI"`)
+- `button-label` — accessible label for the toggle button
+
+Slots:
+- Default slot — content displayed inside the callout popover
+- `body-text` — a `<div>` wrapping the callout body text (use `<p>` elements inside)
+- `actions` — icon buttons rendered at the bottom of the callout
+
+Child component: `cds-ai-label-action-button` — a styled action button rendered below the body text in the callout.
+
+CDN: `ai-label.min.js`
+
+---
+
+### Skeleton
+
+Skeleton components are animated loading placeholders that represent content before it loads. There are three distinct skeleton elements.
+
+**Skeleton Text** — simulates lines of text:
+
+```html
+<!-- Single line -->
+<cds-skeleton-text></cds-skeleton-text>
+
+<!-- Paragraph (multiple lines) -->
+<cds-skeleton-text paragraph line-count="4" width="75%"></cds-skeleton-text>
+
+<!-- Heading size -->
+<cds-skeleton-text heading></cds-skeleton-text>
+```
+
+**Skeleton Placeholder** — simulates a rectangular block (image, card, etc.):
+
+```html
+<cds-skeleton-placeholder></cds-skeleton-placeholder>
+```
+
+Use CSS to control the dimensions:
+
+```html
+<cds-skeleton-placeholder style="width: 200px; height: 150px;"></cds-skeleton-placeholder>
+```
+
+**Skeleton Icon** — simulates a 16×16 icon:
+
+```html
+<cds-skeleton-icon></cds-skeleton-icon>
+```
+
+**AI Skeleton variants** — same elements but loaded from `ai-skeleton.min.js`, which renders with the AI gradient shimmer animation instead of the standard grey shimmer:
+
+```html
+<!-- Load ai-skeleton.min.js, then use the same element names -->
+<cds-skeleton-text paragraph line-count="3"></cds-skeleton-text>
+<cds-skeleton-placeholder></cds-skeleton-placeholder>
+<cds-skeleton-icon></cds-skeleton-icon>
+```
+
+Key attributes (`cds-skeleton-text`):
+- `heading` — boolean, renders at heading scale
+- `paragraph` — boolean, generates multiple lines
+- `line-count` — number of lines when `paragraph` is set (default `3`)
+- `width` — width in `px` or `%` for a single line, or max-width for paragraph lines (default `"100%"`)
+
+`cds-skeleton-placeholder` and `cds-skeleton-icon` have no configurable attributes — size them with CSS.
+
+CDN files:
+- Standard skeletons: `skeleton-text.min.js`, `skeleton-placeholder.min.js`, `skeleton-icon.min.js`
+- AI-styled skeletons: `ai-skeleton.min.js` (registers all three elements with AI shimmer)
+
+---
+
 ### UI Shell (App Shell)
 
 ```html
@@ -805,28 +1485,49 @@ document.querySelector('cds-modal')?.toggleAttribute('open');    // toggle
 | Component | CDN file |
 |-----------|----------|
 | Accordion | `accordion.min.js` |
+| AI Label | `ai-label.min.js` |
+| AI Skeleton | `ai-skeleton.min.js` |
 | Button | `button.min.js` |
 | Breadcrumb | `breadcrumb.min.js` |
 | Checkbox | `checkbox.min.js` |
+| Code Snippet | `code-snippet.min.js` |
+| Combo Box | `combo-box.min.js` |
+| Combo Button | `combo-button.min.js` |
+| Contained List | `contained-list.min.js` |
+| Content Switcher | `content-switcher.min.js` |
+| Copy Button | `copy-button.min.js` |
 | DataTable | `data-table.min.js` |
 | Date Picker | `date-picker.min.js` |
 | Dropdown | `dropdown.min.js` |
+| File Uploader | `file-uploader.min.js` |
+| Form | `form.min.js` |
 | Grid | `grid.min.js` |
+| Heading | `heading.min.js` |
+| Icon Button | `icon-button.min.js` |
 | Link | `link.min.js` |
 | Loading | `loading.min.js` |
+| Menu | `menu.min.js` |
+| Menu Button | `menu-button.min.js` |
 | Modal | `modal.min.js` |
 | Multi Select | `multi-select.min.js` |
 | Notification | `notification.min.js` |
 | Number Input | `number-input.min.js` |
+| Ordered List | `ordered-list.min.js` |
 | Overflow Menu | `overflow-menu.min.js` |
 | Pagination | `pagination.min.js` |
+| Pagination Nav | `pagination-nav.min.js` |
+| Password Input | `password-input.min.js` |
 | Popover | `popover.min.js` |
 | Progress Bar | `progress-bar.min.js` |
 | Progress Indicator | `progress-indicator.min.js` |
 | Radio Button | `radio-button.min.js` |
 | Search | `search.min.js` |
 | Select | `select.min.js` |
+| Skeleton Icon | `skeleton-icon.min.js` |
+| Skeleton Placeholder | `skeleton-placeholder.min.js` |
+| Skeleton Text | `skeleton-text.min.js` |
 | Slider | `slider.min.js` |
+| Structured List | `structured-list.min.js` |
 | Tabs | `tabs.min.js` |
 | Tag | `tag.min.js` |
 | Text Area | `textarea.min.js` |
@@ -837,6 +1538,7 @@ document.querySelector('cds-modal')?.toggleAttribute('open');    // toggle
 | Tooltip | `tooltip.min.js` |
 | TreeView | `tree-view.min.js` |
 | UI Shell | `ui-shell.min.js` |
+| Unordered List | `unordered-list.min.js` |
 
 CDN base: `https://1.www.s81c.com/common/carbon/web-components/version/v2.51.1/`
 
