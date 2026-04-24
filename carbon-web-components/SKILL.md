@@ -1,6 +1,6 @@
 ---
 name: carbon-web-components
-description: guide to implement @carbon/web-components (IBM Carbon Design System), help user create web UIs using Carbon custom elements (cds-*) for enterprise-grade, accessible interfaces
+description: Guide to implement @carbon/web-components (IBM Carbon Design System), help user create web UIs using Carbon custom elements (cds-*) for enterprise-grade, accessible interfaces
 ---
 
 # Carbon Web Components — Component Library Skill
