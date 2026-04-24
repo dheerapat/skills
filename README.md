@@ -7,4 +7,5 @@ npx skills add https://github.com/dheerapat/skills --skill <skill>
 npx skills add https://github.com/github/awesome-copilot --skill gh-cli
 npx skills add https://github.com/dominikmartn/nothing-design-skill --skill nothing-design
 ```
+## skill required a additional script
 [visual-explainer](https://github.com/nicobailon/visual-explainer)
