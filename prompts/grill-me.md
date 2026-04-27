@@ -7,3 +7,5 @@ Interview me relentlessly about every aspect of this $1 until we reach a shared 
 Ask the questions one at a time.
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
+
+After we reached shared understanding, summarize all of it to me. DO NOT IMPLEMENTING ANYTHING

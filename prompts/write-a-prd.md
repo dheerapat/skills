@@ -2,7 +2,7 @@
 description: Create a PRD from the discussion with user. 
 ---
 
-Once you have a complete understanding of the problem and solution, use the template below to write the PRD. Save it as named `<task>-prd.md`
+Once you have a complete understanding of the problem and solution from the discussion, use the template below to write the PRD. Save it as named `<task>-prd.md`
 
 ```markdown
 # Problem Statement
