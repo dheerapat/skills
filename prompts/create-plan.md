@@ -1,5 +1,5 @@
 ---
-description: Create a PLAN.md file from discussion 
+description: Create a PLAN.md file from discussion. 
 ---
 
 From the discussion, create a PLAN.md file using the following template,
