@@ -15,7 +15,7 @@ state: [draft / feedback_requested / active / abandoned / retired]
 [Describe the current pain points or the opportunity you are seizing.]
 
 ## Approach
-[Describe the architecture, strategy, or workflow change you are proposing.]
+[Describe the architecture, strategy, or workflow change you are proposing. Include relevant pseudocode, flow charts, code snippets, or file structure as needed.]
 
 ## Benefits
 *   [Benefit 1]
