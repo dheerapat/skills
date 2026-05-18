@@ -1,7 +1,3 @@
----
-description: Create an RFC from the discussion with user.
----
-
 Once you have a complete understanding of the proposal, including the specific need, the proposed solution/approach, and potential alternatives, use the template below to write the RFC. Save it as named `<task>-rfc.md`
 
 ```markdown

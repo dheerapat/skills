@@ -2,8 +2,6 @@ Guide the user through a structured, one-question-at-a-time interview to fully d
 After reaching shared understanding, output a complete PRD summary. Do NOT write the PRD file until
 the interview is done and the user confirms the summary.
 
----
-
 ## Step 0 — Opening question (always first)
 
 Before anything else, ask this single opening question:
