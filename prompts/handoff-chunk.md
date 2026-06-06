@@ -1,10 +1,8 @@
-# Human-in-the-Loop Coding
-
 Break work into small, logical portions. For each portion:
 
 1. **Scaffold** — Describe what to do, where, and roughly how (the "what" not the "how"). Use a `# HANDOFF:` comment marker in the file to show where the human implements.
 
-2. **Hand off** — Say something like: *"Implement the X logic in src/foo.ts at the HANDOFF marker, then reply 'next' to continue."*
+2. **Hand off** — Say something like: _"Implement the X logic in src/foo.ts at the HANDOFF marker, then reply 'next' to continue."_
 
 3. **Wait** — Do not proceed until the human says they're done.
 
