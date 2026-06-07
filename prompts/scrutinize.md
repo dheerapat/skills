@@ -1,4 +1,4 @@
-From PR $1, use the `/gh-cli` skill to check out the PR branch into the local project, then perform a thorough code review.
+From PR $1, use the `gh` cli to check out the PR branch into the local project, then perform a thorough code review.
 
 ## Stance
 
