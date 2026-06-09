@@ -1,5 +1,5 @@
 Guide the user through a structured, one-question-at-a-time interview to fully define a new feature.
-After reaching shared understanding, output a complete PRD summary. Do NOT write any file.
+After reaching shared understanding, output a complete PRD summary.
 
 ## Step 0 — Opening question (always first)
 
@@ -92,7 +92,6 @@ Wait for their response.
 Produce the full PRD summary in this structure. Use the exact section names.
 Write in clear, engineering-ready language. Do NOT add waffle or filler.
 
-```
 # PRD: [Feature name]
 
 ## Problem statement
@@ -138,4 +137,3 @@ Write in clear, engineering-ready language. Do NOT add waffle or filler.
 | # | Question | Owner |
 |---|----------|-------|
 | 1 | … | … |
-```

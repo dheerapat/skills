@@ -26,60 +26,57 @@ Structure your interrogation to fill these buckets sequentially:
 *   Finally, validate **Competition/Alternatives** (Did we consider doing nothing?).
 
 **OUTPUT FORMAT:**
-Once the interview is complete, summarize our shared understanding strictly in this format:
+Once the interview is complete, summarize our shared understanding strictly in this format.
+
+> **Note:** The **Approach** section is the core of the RFC — it should be the longest and most detailed section by far. Keep Need, Benefits, and Competition short and scannable (1-2 paragraphs max each). All effort goes into making the Approach concrete.
 
 ## Need
 *Describe the specific need, problem, or opportunity this proposal addresses.*
 
 **Guidance:**
-*   Focus on the **"What"** and **"Why"**, not the "How."
-*   Who is the "client" (internal team, end-user, business)?
-*   Why is this important? What happens if we don't solve it?
-*   List any explicit constraints (e.g., "Must be delivered by Q3," "Budget limit X").
+Keep this brief — 2-3 sentences. Focus on the **"What"** and **"Why"**, not the "How." State the core problem, who it affects, and what happens if we don't solve it.
 
 **Content:**
-[Describe the current pain points or the opportunity you are seizing.]
+[1-2 paragraphs max]
 
 ## Approach
 *Describe your proposed solution with enough technical detail to be clearly understood.*
 
+> **This is the main event. Spend the most space here.**
+
 **Guidance:**
 *   Stay out of full implementation, task lists, or project plans — but do not stay high-level. Make the solution concrete.
-*   Include **pseudocode**, **flow charts / sequence diagrams**, **key code snippets**, or **file structure diagrams** where they clarify the design. Do not skip these if they help explain the mechanics.
+*   **Prefer diagrams and flow charts over code.** Use Mermaid diagrams (flowcharts, sequence diagrams, state diagrams) to illustrate architecture, data flow, and decision paths. Include **pseudocode only** when a concept cannot be clearly expressed in a diagram. Avoid actual code snippets unless they are essential to disambiguate a subtle contract.
 *   Explain the architecture, data flow, and key abstractions. A reader should understand *how* the pieces fit together without guessing.
-*   The goal is to validate the direction *and* the technical shape before investing time in the details.
+*   The goal is to validate the direction *and* the technical shape before investing time in the details. If you find yourself writing a code snippet, ask: "Can this be a diagram instead?"
+*   Limit code to no more than 3 lines — anything longer belongs in pseudocode or a diagram.
 
 **Content:**
-[Describe the architecture, strategy, or workflow change you are proposing. Include relevant pseudocode, flow charts, code snippets, or file structure as needed.]
+[This section should be the bulk of the entire document. Use diagrams liberally. 5-10+ paragraphs as needed.]
 
 ## Benefits
 *What are the specific advantages of this approach?*
 
 **Guidance:**
-*   Be quantitative where possible (e.g., "Reduces latency by 20%," "Saves 5 hours/week").
-*   If quantitative data isn't available, be specific about the qualitative improvements.
-*   Why must we "win" with this approach?
+List 2-3 concrete benefits, one sentence each. Prefer quantifiable outcomes. Keep it tight.
 
 **Content:**
-*   [Benefit 1]
-*   [Benefit 2]
-*   [Benefit 3]
+*   [Benefit 1 — one sentence]
+*   [Benefit 2 — one sentence]
+*   [Benefit 3 — one sentence]
 
 ## Competition / Alternatives
 *What other options did you consider?*
 
 **Guidance:**
-*   You **must** consider the "Do Nothing" option.
-*   List other approaches you discarded and briefly explain why this approach is significantly better.
+List 2-3 alternatives (including "Do Nothing") and briefly explain why each was rejected. One line per alternative is enough.
 
+**Content:**
 ### Option 1: Do Nothing (Status Quo)
-*   **Description:** Keep the current system/process as is.
-*   **Why rejected:** [Explain why the pain points described in "Need" are unacceptable.]
+Why rejected: [One sentence.]
 
-### Option 2: [Name of Alternative Approach]
-*   **Description:** [Brief description of the alternative.]
-*   **Why rejected:** [Explain the tradeoffs that make this inferior to your proposed Approach.]
+### Option 2: [Name]
+Why rejected: [One sentence.]
 
-### Option 3: [Name of Alternative Approach]
-*   **Description:** [Brief description of the alternative.]
-*   **Why rejected:** [Explain the tradeoffs that make this inferior to your proposed Approach.]
+### Option 3: [Name]
+Why rejected: [One sentence.]
