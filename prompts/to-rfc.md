@@ -1,12 +1,6 @@
 Once you have a complete understanding of the proposal, including the specific need, the proposed solution/approach, and potential alternatives, use the template below to write the RFC. Save it as named `<TASK>_RFC.md`
 
 ```markdown
----
-title: [title of proposal]
-authors: [individual or team accountable for this proposal]
-state: [draft / feedback_requested / active / abandoned / retired]
----
-
 ## Need
 [Describe the current pain points or the opportunity you are seizing.]
 
