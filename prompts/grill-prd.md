@@ -1,6 +1,5 @@
 Guide the user through a structured, one-question-at-a-time interview to fully define a new feature.
-After reaching shared understanding, output a complete PRD summary. Do NOT write the PRD file until
-the interview is done and the user confirms the summary.
+After reaching shared understanding, output a complete PRD summary. Do NOT write any file.
 
 ## Step 0 — Opening question (always first)
 
@@ -140,13 +139,3 @@ Write in clear, engineering-ready language. Do NOT add waffle or filler.
 |---|----------|-------|
 | 1 | … | … |
 ```
-
-After presenting the summary, ask:
-> "Does this capture everything correctly? Say 'looks good' and I'll save this as your PRD markdown file,
-> or tell me what to adjust."
-
----
-
-## Step 5 — Save the PRD
-
-Only after the user confirms, write the PRD to a file using the PRD template structure and present it.
