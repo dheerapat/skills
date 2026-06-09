@@ -19,7 +19,7 @@ Ask the user:
 - Iterate until the user approves the breakdown.
 
 # Create the issues
-For each approved slice, create an issue inside folder `./issue/<task>/<issue>.md`. Use the issue body template below.
+For each approved slice, create an issue inside folder `./issue/<TASK>/<ISSUE>.md`. Use the issue body template below.
 Create issues in dependency order (blockers first) so you can reference real issue numbers in the "Blocked by" field.
 
 ```markdown
