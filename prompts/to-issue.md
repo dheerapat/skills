@@ -3,6 +3,7 @@ Break the $1 into tracer bullet issues. Each issue is a thin vertical slice that
 Slices may be 'human-in-the-loop' or 'automatic'. human-in-the-loop slices require human interaction, such as an architectural decision or a design review. automatic slices can be implemented and merged without human interaction. Prefer automatic over human-in-the-loop where possible.
 
 # Quiz the user
+
 Present the proposed breakdown as a numbered list. For each slice, show:
 
 - Title: short descriptive name
@@ -19,11 +20,13 @@ Ask the user:
 - Iterate until the user approves the breakdown.
 
 # Create the issues
+
 For each approved slice, create an issue inside folder `./issue/<TASK>/<ISSUE>.md`. Use the issue body template below.
 Create issues in dependency order (blockers first) so you can reference real issue numbers in the "Blocked by" field.
 
 ```markdown
 # What to build
+
 A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation.
 Reference specific sections of the parent PRD rather than duplicating content.
 
@@ -34,14 +37,16 @@ Reference specific sections of the parent PRD rather than duplicating content.
 - Criterion 3
 
 # Blocked by
+
 Blocked by # (if any)
 Or "None - can start immediately" if no blockers.
 
 # User stories addressed
+
 Reference by number from the parent PRD:
 
 - User story 3
 - User story 7
 ```
 
-Do NOT modify the parent PRD.
+Do NOT modify the parent document.

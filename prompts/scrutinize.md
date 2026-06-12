@@ -17,7 +17,7 @@ Before forming any opinion, characterise the change:
 - **Diff size:** `+N / -M` across `F` files
 - **Shape:** new feature / bugfix / refactor / config / docs / mixed
 - **Affected areas:** list top-level directories or modules touched
-- **Dominant pattern:** what does most of the diff *do*? (add tests? change types? rewire logic? add routes?)
+- **Dominant pattern:** what does most of the diff _do_? (add tests? change types? rewire logic? add routes?)
 
 This step is diagnostic only — no judgement yet. State the facts and move on.
 
@@ -29,17 +29,18 @@ State the PR's goal in one sentence, in your own words. If you can't, the PR is 
 
 Then ask: **is there a simpler way to achieve the same goal?** Evaluate each alternative explicitly:
 
-| Alternative | Effort | Risk | Benefit vs. PR |
-|---|---|---|---|
-| **Do nothing** – is this problem real and load-bearing? | — | — | — |
-| **Reuse existing** – something already in the codebase instead of new surface | — | — | — |
-| **Smaller change** – 90% of the benefit with 10% of the risk | — | — | — |
-| **Different layer** – config vs. code, framework vs. app, build vs. runtime | — | — | — |
-| **PR's own approach** | baseline | baseline | baseline |
+| Alternative                                                                   | Effort   | Risk     | Benefit vs. PR |
+| ----------------------------------------------------------------------------- | -------- | -------- | -------------- |
+| **Do nothing** – is this problem real and load-bearing?                       | —        | —        | —              |
+| **Reuse existing** – something already in the codebase instead of new surface | —        | —        | —              |
+| **Smaller change** – 90% of the benefit with 10% of the risk                  | —        | —        | —              |
+| **Different layer** – config vs. code, framework vs. app, build vs. runtime   | —        | —        | —              |
+| **PR's own approach**                                                         | baseline | baseline | baseline       |
 
 If a better alternative exists (strictly higher benefit-to-risk ratio), name it with rationale before the line-by-line review — this is the highest-value output.
 
 Also check: **does the PR break existing contracts?**
+
 - Public API signatures (new required params, removed exports, changed return types)
 - On-wire / on-disk format changes (serialisation, DB schema, file format)
 - Configuration shape (new required keys, removed keys)
@@ -55,7 +56,7 @@ For each behavior the PR claims, walk the path end-to-end through the real code:
 Entry point → call sites → branches taken → state mutated → exit / return / side effect
 ```
 
-Trace **both directions** — forward from entry point *and* backward from claimed output.
+Trace **both directions** — forward from entry point _and_ backward from claimed output.
 
 Include unchanged code on both sides of the diff — bugs live at the seams. Flag every surprise (unexpected branch, dead code reached, unknown state). Surprises are signal.
 
@@ -74,10 +75,12 @@ If a claimed behavior can't be traced end-to-end, that's a finding — the PR cl
 For each claim, answer these **dimensions** explicitly. Use bullet points per dimension.
 
 #### Correctness
+
 - Does the traced path actually produce the claimed behavior? Be explicit: _"Claims X. Path: A → B → C. At C, [observation]. Therefore [holds / breaks]."_
 - What inputs or states would break it? Consider: concurrent callers, error paths, partial failures, empty / null / huge values, ordering assumptions.
 
 #### Security
+
 - Does the change touch authentication or authorization logic? Could a caller bypass a check?
 - Does it handle untrusted input (user-supplied, network, file read)? If so, are validation, sanitisation, and escaping correct?
 - Does it introduce a new dependency or network call? Is its trust model documented?
@@ -85,29 +88,34 @@ For each claim, answer these **dimensions** explicitly. Use bullet points per di
 - Are secrets (keys, tokens, passwords) handled correctly — never logged, not hardcoded, scoped to least privilege?
 
 #### Error handling
+
 - What happens at each failure point along the traced path? Is the error surfaced, swallowed, or misrepresented?
 - Are error messages actionable and non-revealing?
 - Are retries, fallbacks, or circuit-breakers needed but missing?
 - Is there a risk of silent data corruption (partial writes, inconsistent state)?
 
 #### Performance
+
 - Where are allocations, I/O, or network calls happening? Are they in a hot path or loop?
 - Could this change introduce N+1 queries, unnecessary recomputation, or unbounded resource usage?
 - Is the change payload-size aware? (large uploads, many rows, streaming)
 - For client-side changes: what is the bundle-size impact?
 
 #### Observability
+
 - After this change, can an on-call engineer understand what happened? (logging, metrics, tracing)
 - Are new failure modes logged with enough context to debug without reproducing?
 - Are metrics added for the key operations (latency, throughput, error rate)?
 - Is there a panic / crash / unhandled rejection path that would be invisible?
 
 #### Compatibility
+
 - Does the change require a migration? Is it forward/backward compatible within the same deployment?
 - Are there co-deploy concerns (API consumers, dependent services, client apps)?
 - Are old clients, cached data, or stale configs handled gracefully?
 
 #### Test quality
+
 - Do the tests exercise the actual traced path, or do they pass by skipping it (e.g., mocks that hide bugs, happy-path-only asserts)?
 - Are edge cases, error paths, and boundary values covered — or only the golden path?
 - Are the assertions meaningful? (checking the actual outcome vs. checking a non-functional side effect)
@@ -130,28 +138,26 @@ Open with a **summary box**:
 
 Then one section per finding, ordered by severity. **Only `blocker`, `major`, and `minor`** are valid severities. `nit` is not — if it's not at least `minor`, it doesn't belong in the report.
 
-| Field | Content |
-|---|---|
-| **Severity** | `blocker` / `major` / `minor` — `nit` is forbidden |
-| **Category** | `correctness` / `security` / `performance` / `error-handling` / `observability` / `compatibility` / `test-quality` / `style` / `structure` |
-| **Finding** | One sentence. Cite `file:line`. |
-| **Why it matters** | The consequence, not the principle. |
-| **Evidence** | The trace step or input that exposes it. |
-| **Code** | The problematic code, in the format below. |
-| **Fix** | Concrete and minimal — a code snippet or precise description. |
+| Field              | Content                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Severity**       | `blocker` / `major` / `minor` — `nit` is forbidden                                                                                         |
+| **Category**       | `correctness` / `security` / `performance` / `error-handling` / `observability` / `compatibility` / `test-quality` / `style` / `structure` |
+| **Finding**        | One sentence. Cite `file:line`.                                                                                                            |
+| **Why it matters** | The consequence, not the principle.                                                                                                        |
+| **Evidence**       | The trace step or input that exposes it.                                                                                                   |
+| **Code**           | The problematic code, in the format below.                                                                                                 |
+| **Fix**            | Concrete and minimal — a code snippet or precise description.                                                                              |
 
 **Code citation format — mandatory for every finding:**
 
-```
 path/to/file/name.ts:<line-start>-<line-end>
 
-\```ts
+```ts
 // exact code from that range
-\```
-
 ```
 
 Rules for the code block:
+
 - Line range must be exact — no approximations like `~42` or `40+`.
 - Include only the lines directly implicated. If the problem spans two non-contiguous ranges, emit two blocks.
 - Do not paraphrase or reconstruct the code — copy it verbatim.
