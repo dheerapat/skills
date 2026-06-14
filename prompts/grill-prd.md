@@ -1,3 +1,7 @@
+---
+description: Structured one-question-at-a-time interview to define a feature and produce a PRD
+---
+
 Guide the user through a structured, one-question-at-a-time interview to fully define a new feature.
 After reaching shared understanding, output a complete PRD summary.
 

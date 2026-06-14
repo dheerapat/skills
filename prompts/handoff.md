@@ -1,3 +1,7 @@
+---
+description: Scaffold-handoff-wait-continue workflow for collaborative implementation
+---
+
 Break work into small, logical portions. For each portion:
 
 1. **Scaffold** — Describe what to do, where, and roughly how (the "what" not the "how"). Use a `# HANDOFF:` comment marker in the file to show where the human implements.
