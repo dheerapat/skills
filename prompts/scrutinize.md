@@ -143,21 +143,27 @@ Open with a **summary box**:
 
 Then one section per finding, ordered by severity. **Only `blocker`, `major`, and `minor`** are valid severities. `nit` is not — if it's not at least `minor`, it doesn't belong in the report.
 
-| Field              | Content                                                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Severity**       | `blocker` / `major` / `minor` — `nit` is forbidden                                                                                         |
-| **Category**       | `correctness` / `security` / `performance` / `error-handling` / `observability` / `compatibility` / `test-quality` / `style` / `structure` |
-| **Finding**        | One sentence. Cite `file:line`.                                                                                                            |
-| **Why it matters** | The consequence, not the principle.                                                                                                        |
-| **Evidence**       | The trace step or input that exposes it.                                                                                                   |
-| **Code**           | The problematic code, in the format below.                                                                                                 |
-| **Fix**            | Concrete and minimal — a code snippet or precise description.                                                                              |
+Each finding has these fields:
+
+**Severity** — `blocker` / `major` / `minor`. `nit` is forbidden.
+
+**Category** — `correctness` / `security` / `performance` / `error-handling` / `observability` / `compatibility` / `test-quality` / `style` / `structure`.
+
+**Finding** — One sentence. Cite `file:line`.
+
+**Why it matters** — The consequence, not the principle.
+
+**Evidence** — The trace step or input that exposes it.
+
+**Code** — The problematic code, in the format below.
+
+**Fix** — Concrete and minimal: a code snippet or precise description.
 
 **Code citation format — mandatory for every finding:**
 
 path/to/file/name.ts:<line-start>-<line-end>
 
-```ts
+```
 // exact code from that range
 ```
 
