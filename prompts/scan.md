@@ -20,9 +20,7 @@ Markers (case-insensitive): `TODO`, `FIXME`, `HACK`, `XXX`, `TEMP`, `OPTIMIZE`, 
 
 Close: **`<N> debt markers found, <M> stale.`**
 
-## 2. Call Sites
-
-For each public symbol, grep invocations, imports, and instantiation across the codebase:
+For each public symbol, also report direct callers for context:
 
 ```
 <symbol>
@@ -32,32 +30,49 @@ For each public symbol, grep invocations, imports, and instantiation across the 
   Indirect   →  <N> (callbacks, collections)
 ```
 
-Flag: only-test callers, recursive-only, dead branches, registered listeners with no emitter.
+## 3. Dead Code (Root-Outward Reachability)
 
-## 3. Dead Code
+Don't just ask "does anything call this?" — ask "does anything **live** call this?" A function called only by other dead functions is itself dead.
 
-A symbol is dead if:
+### Step 1: Identify Roots
 
-| Condition                                   | Verdict              |
-|---------------------------------------------|----------------------|
-| No callers anywhere                         | 🟢 Safe to delete   |
-| Only in tests                               | 🟡 Production dead  |
-| Recursive only / only from other dead code  | 🟢 Safe to delete   |
-| Behind dead branches                        | 🟢 Safe to delete   |
-| Listener but event never emitted            | 🟢 Safe to delete   |
-| Live callers exist                          | 🔴 Keep             |
+App entry points that are always live:
+- `main()`, `index.*`, `App.*`, `app.*`
+- Exported symbols from package entry (`exports` in `package.json`, barrel files)
+- Registered routes (`router.get`, `app.post`, etc.)
+- Registered event listeners (`on`, `addEventListener`, `subscribe`)
+- Command handlers, middleware, plugin registrations
+- Test-only roots (describe/it blocks) — separate bucket
 
-For listeners: grep the event name against `emit`, `dispatch`, `publish`, `next`, `trigger`, `send`. No emitter = dead.
+### Step 2: Walk the Graph
 
-**Deletion snippet** for each 🟢:
+From each root, transitively follow: calls, imports, instantiations, method references. Mark every reached symbol as **LIVE**.
+
+### Step 3: Everything Unreached is Dead
+
+| Condition                                            | Verdict              |
+|------------------------------------------------------|----------------------|
+| Never reached from any root                          | 🟢 Safe to delete   |
+| Reached only from test roots                         | 🟡 Production dead  |
+| Reached only from other 🟢 dead symbols             | 🟢 Safe to delete   |
+| Behind dead branches (`if (false)`, unreachable)     | 🟢 Safe to delete   |
+| Listener but event never emitted from live code      | 🟢 Safe to delete   |
+| Reached from live root                               | 🔴 Keep             |
+
+For listeners: grep event name against `emit`, `dispatch`, `publish`, `next`, `trigger`, `send`. Emitter exists in live code = live. No emitter or emitter is dead = dead.
+
+### Deletion Snippet
+
+For each 🟢:
 
 ```
 <symbol>  —  <reason>
-  Defined:  <file:line>
-  Delete:   definition + all references in <files>
+  Defined:   <file:line>
+  Called by:  <caller> (also dead) | nobody
+  Delete:    definition + all references in <files>
 ```
 
-Also flag: unused imports, dead branches (`if (false)`), unreachable code, orphaned exports.
+Also flag: unused imports, dead branches, unreachable code, orphaned exports.
 
 ## 4. Summary
 
@@ -77,7 +92,7 @@ Clean scan: `No debt, no dead code, all symbols live.`
 
 ## Rules
 
-- Trace outward from target. Dead code hides in cross-file gaps.
+- Trace outward from target using root-outward reachability. Dead code hides in call chains where every caller is also dead.
 - Skip: `node_modules`, `.git`, `dist`, `build`, `target`, `.next`, `out`, `__pycache__`, `.venv`
 - Report only. Don't modify anything.
 - Can't find target? Suggest alternatives.
