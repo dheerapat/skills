@@ -2,11 +2,7 @@
 description: Find dead/unused database tables — step-by-step guided walkthrough
 ---
 
-# Dead Table Detector
-
 Guide the user step-by-step to find unused database tables. Do NOT skip ahead — complete each step before moving to the next.
-
----
 
 ## Step 1: Detect the Database Engine
 
@@ -20,8 +16,6 @@ Offer these options:
 5. Other (ask them to specify)
 
 Once answered, proceed to Step 2.
-
----
 
 ## Step 2: List All Tables
 
@@ -71,8 +65,6 @@ ORDER BY TABLE_NAME;
 **Other:**
 Ask them to run `SHOW TABLES` or their engine's equivalent, and paste the output.
 
----
-
 ## Step 3: Receive Table List
 
 Once the user pastes the query output, extract every table name into a clean checklist:
@@ -88,8 +80,6 @@ Found <N> tables:
 Then ask: **"Is this complete, or are there schemas/databases I'm missing?"**
 
 Proceed to Step 4 only after confirmation.
-
----
 
 ## Step 4: Identify the DB Connector & ORM
 
@@ -109,8 +99,6 @@ Report to the user:
 Then ask: **"Is this correct? Any other DB connections I'm missing?"**
 
 Proceed to Step 5 after confirmation.
-
----
 
 ## Step 5: Trace Table Usage Per Stack
 
@@ -163,8 +151,6 @@ For each table from Step 3, report:
   Deleted by:  <file:line> or "none"
 ```
 
----
-
 ## Step 6: Classify Reachability
 
 For each table, determine if it's reachable from live app code (routes, handlers, CLI, cron, etc.):
@@ -175,8 +161,6 @@ For each table, determine if it's reachable from live app code (routes, handlers
 | 🟡 MIGRATION ONLY | Only referenced in migration files |
 | 🟡 SEED ONLY | Only referenced in seed/test fixtures |
 | 🔴 DEAD | No references anywhere, or only dead code |
-
----
 
 ## Step 7: Final Report
 
@@ -196,8 +180,6 @@ For each table, determine if it's reachable from live app code (routes, handlers
 ### Manual Review
 - `temp_cache` — migration only, decide if rollback protection needed
 ```
-
----
 
 ## Rules
 

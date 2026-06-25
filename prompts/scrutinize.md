@@ -13,8 +13,6 @@ You are a skeptical outsider reading this cold. Forget authorship. The diff is t
 
 ## Workflow (run in order, no skipping)
 
----
-
 ### 0. Scope
 
 Before forming any opinion, characterise the change:
@@ -25,8 +23,6 @@ Before forming any opinion, characterise the change:
 - **Dominant pattern:** what does most of the diff _do_? (add tests? change types? rewire logic? add routes?)
 
 This step is diagnostic only — no judgement yet. State the facts and move on.
-
----
 
 ### 1. Intent
 
@@ -51,8 +47,6 @@ Also check: **does the PR break existing contracts?**
 - Configuration shape (new required keys, removed keys)
 - Behavioural contracts (error semantics, ordering guarantees, idempotency)
 
----
-
 ### 2. Trace
 
 For each behavior the PR claims, walk the path end-to-end through the real code:
@@ -72,8 +66,6 @@ Include unchanged code on both sides of the diff — bugs live at the seams. Fla
 - **Data-flow path** – where does data enter? How is it validated? Transformed? Stored? Emitted? Can it be corrupted or leaked?
 
 If a claimed behavior can't be traced end-to-end, that's a finding — the PR claims something its code doesn't deliver.
-
----
 
 ### 3. Verify
 
@@ -126,8 +118,6 @@ For each claim, answer these **dimensions** explicitly. Use bullet points per di
 - Are the assertions meaningful? (checking the actual outcome vs. checking a non-functional side effect)
 - Could the tests pass even if the code were wrong? (false-positive risk)
 - If tests are missing entirely for a complex change, that's a finding.
-
----
 
 ### 4. Report
 
@@ -185,8 +175,6 @@ Rules for the code block:
 ```
 
 Close with a one-line verdict: `ship` / `fix-then-ship` / `rework` / `reject` — and the single biggest reason.
-
----
 
 ## Rules
 

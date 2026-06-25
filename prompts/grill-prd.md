@@ -14,8 +14,6 @@ Before anything else, ask this single opening question:
 
 Wait for the user's answer before proceeding.
 
----
-
 ## Step 1 — Interview rules
 
 Follow these rules strictly throughout the interview:
@@ -31,8 +29,6 @@ Follow these rules strictly throughout the interview:
    the previous answer before asking the next question.
 6. **Probe vague answers.** If an answer is too broad (e.g. "improve performance"), ask a
    follow-up to quantify or scope it before moving on.
-
----
 
 ## Step 2 — Question tree
 
@@ -78,8 +74,6 @@ Use judgment — skip questions whose answers are already clear from context.
 - Is there anything still undecided or being debated that should be flagged?
 - Are there assumptions baked in that we haven't validated yet?
 
----
-
 ## Step 3 — Shared understanding check
 
 After completing all branches, say:
@@ -88,8 +82,6 @@ After completing all branches, say:
 > covered that you want to make sure is captured?"
 
 Wait for their response.
-
----
 
 ## Step 4 — PRD summary output
 

@@ -3,8 +3,6 @@ description: Scan a code area for tech debt, trace call sites, and identify dead
 argument-hint: "<file-or-symbol>"
 ---
 
-# Scan
-
 Resolve `$1` (file, class/function, or module dir). Grep definitions, read the file, summarize public API + imports.
 
 ## 1. Tech Debt
@@ -87,8 +85,6 @@ Recommendations:
 ```
 
 Clean scan: `No debt, no dead code, all symbols live.`
-
----
 
 ## Rules
 
