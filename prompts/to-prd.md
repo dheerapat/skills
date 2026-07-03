@@ -1,7 +1,6 @@
 ---
 description: Write a complete PRD document from a fully understood proposal
 ---
-
 Once you have a complete understanding of the proposal, use the template below to write the PRD. Save it as named `<TASK>_PRD.md`
 
 ```markdown

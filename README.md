@@ -17,7 +17,6 @@ npx skills add https://bun.sh/docs
 npx skills add https://github.com/oxc-project/oxc --skill migrate-oxlint
 npx skills add https://github.com/oxc-project/oxc --skill migrate-oxfmt
 npx skills add https://github.com/mattpocock/skills --skill tdd
-npx skills add https://github.com/github/awesome-copilot --skill gh-cli
 npx skills add https://github.com/dominikmartn/nothing-design-skill --skill nothing-design
 npx skills add https://github.com/streamlit/agent-skills --skill developing-with-streamlit
 npx skills add https://github.com/duckdb/duckdb-skills.git

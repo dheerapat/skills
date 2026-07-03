@@ -2,7 +2,6 @@
 description: Break a feature or proposal into ordered tracer-bullet issues
 argument-hint: "<feature>"
 ---
-
 Break the $1 into tracer bullet issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
 
 Slices may be 'human-in-the-loop' or 'automatic'. human-in-the-loop slices require human interaction, such as an architectural decision or a design review. automatic slices can be implemented and merged without human interaction. Prefer automatic over human-in-the-loop where possible.

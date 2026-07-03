@@ -1,7 +1,6 @@
 ---
 description: Write a complete RFC document from a fully understood proposal
 ---
-
 Once you have a complete understanding of the proposal, including the specific need, the proposed solution/approach, and potential alternatives, use the template below to write the RFC. Save it as named `<TASK>_RFC.md`
 
 ```markdown

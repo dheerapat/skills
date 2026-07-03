@@ -1,7 +1,6 @@
 ---
 description: Find dead/unused database tables — step-by-step guided walkthrough
 ---
-
 Guide the user step-by-step to find unused database tables. Do NOT skip ahead — complete each step before moving to the next.
 
 ## Step 1: Detect the Database Engine

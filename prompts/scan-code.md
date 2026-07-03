@@ -2,7 +2,6 @@
 description: Scan a code area for tech debt, trace call sites, and identify dead code safe to delete
 argument-hint: "<file-or-symbol>"
 ---
-
 Resolve `$1` (file, class/function, or module dir). Grep definitions, read the file, summarize public API + imports.
 
 ## 1. Tech Debt
