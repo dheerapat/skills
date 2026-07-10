@@ -5,7 +5,7 @@ access to patient data from a FHIR server. The LLM can request clinical data
 mid-conversation and suggest actions (medications, procedures, orders) for
 human approval before execution.
 
----
+______________________________________________________________________
 
 ## Architecture
 
@@ -33,19 +33,19 @@ stdout for tool calls, and handles two types of tools differently:
   suggestion to the user in a review UI, waits for accept/reject, then feeds
   the decision back.
 
----
+______________________________________________________________________
 
 ## The Two Tool Types
 
 Both return `terminate: true` to pause pi so the server can interject.
 The server tells them apart by `toolName`.
 
-| Tool | Purpose | Server behavior | `terminate: true` |
-|---|---|---|---|
-| `fetch_patient_data` | Pull patient labs, vitals, meds, conditions from FHIR | Auto-resolve: query FHIR, feed data back immediately | Yes |
-| `suggest_clinical_action` | Propose a medication, procedure, or order | Show review UI, wait for human accept/reject | Yes |
+| Tool                      | Purpose                                               | Server behavior                                      | `terminate: true` |
+| ------------------------- | ----------------------------------------------------- | ---------------------------------------------------- | ----------------- |
+| `fetch_patient_data`      | Pull patient labs, vitals, meds, conditions from FHIR | Auto-resolve: query FHIR, feed data back immediately | Yes               |
+| `suggest_clinical_action` | Propose a medication, procedure, or order             | Show review UI, wait for human accept/reject         | Yes               |
 
----
+______________________________________________________________________
 
 ## Custom Tool: `fetch_patient_data`
 
@@ -104,7 +104,7 @@ export default function (pi: ExtensionAPI) {
 }
 ```
 
----
+______________________________________________________________________
 
 ## Custom Tool: `suggest_clinical_action`
 
@@ -210,7 +210,7 @@ export default function (pi: ExtensionAPI) {
 }
 ```
 
----
+______________________________________________________________________
 
 ## The Agent Server
 
@@ -428,21 +428,21 @@ if __name__ == "__main__":
     main()
 ```
 
----
+______________________________________________________________________
 
 ## RPC Events the Server Watches
 
-| Event | What to do |
-|---|---|
-| `message_update` | Stream delta text to the user's chat UI |
-| `tool_execution_end` + `toolName` in `DATA_TOOLS` | Fetch from FHIR, feed data back as a prompt |
+| Event                                               | What to do                                         |
+| --------------------------------------------------- | -------------------------------------------------- |
+| `message_update`                                    | Stream delta text to the user's chat UI            |
+| `tool_execution_end` + `toolName` in `DATA_TOOLS`   | Fetch from FHIR, feed data back as a prompt        |
 | `tool_execution_end` + `toolName` in `ACTION_TOOLS` | Show review UI, wait for human, feed decision back |
-| `message_end` | Display final assistant message text |
+| `message_end`                                       | Display final assistant message text               |
 
 Events the server can ignore: `agent_start`, `turn_start`, `turn_end`,
 `extension_ui_request`, `compaction_start/end`.
 
----
+______________________________________________________________________
 
 ## Full Conversation Flow
 
@@ -483,7 +483,7 @@ Events the server can ignore: `agent_start`, `turn_start`, `turn_end`,
 The cycle can repeat: the LLM may fetch more data, suggest more actions, or
 answer questions — all with the server mediating between pi, FHIR, and the user.
 
----
+______________________________________________________________________
 
 ## Caveats
 
@@ -507,7 +507,7 @@ answer questions — all with the server mediating between pi, FHIR, and the use
   it will serially call `fetch_patient_data` → wait → get data → call again.
   Pre-fetch common data bundles on the server side to reduce this.
 
----
+______________________________________________________________________
 
 ## Adapting to Other Domains
 
@@ -522,22 +522,22 @@ For each domain, define two tool types following the same pattern:
 - **Action-suggestion tool** — proposes a consequential action.
   Server shows review UI, waits for human accept/reject.
 
-| Domain | Data tool | Action tool | Backend | Human decision |
-|---|---|---|---|---|
-| Clinical | `fetch_patient_data` | `suggest_clinical_action` | FHIR server (labs, meds, conditions) | Accept / Reject medication, procedure, order |
-| Legal | `lookup_precedents` | `suggest_clause` | Internal case law DB | Accept / Reject / Edit clause text |
-| DevOps | `fetch_deployment_status` | `suggest_deploy` | Kubernetes API, CI/CD | Approve / Deny deployment |
-| Finance | `query_portfolio` | `suggest_trade` | Market data API, portfolio DB | Execute / Cancel trade |
-| Enterprise | `query_salesforce` | `suggest_outreach` | Salesforce API | Approve / Revise customer communication |
-| Security | `fetch_threat_intel` | `suggest_mitigation` | SIEM, threat feeds | Apply / Escalate / Dismiss |
+| Domain     | Data tool                 | Action tool               | Backend                              | Human decision                               |
+| ---------- | ------------------------- | ------------------------- | ------------------------------------ | -------------------------------------------- |
+| Clinical   | `fetch_patient_data`      | `suggest_clinical_action` | FHIR server (labs, meds, conditions) | Accept / Reject medication, procedure, order |
+| Legal      | `lookup_precedents`       | `suggest_clause`          | Internal case law DB                 | Accept / Reject / Edit clause text           |
+| DevOps     | `fetch_deployment_status` | `suggest_deploy`          | Kubernetes API, CI/CD                | Approve / Deny deployment                    |
+| Finance    | `query_portfolio`         | `suggest_trade`           | Market data API, portfolio DB        | Execute / Cancel trade                       |
+| Enterprise | `query_salesforce`        | `suggest_outreach`        | Salesforce API                       | Approve / Revise customer communication      |
+| Security   | `fetch_threat_intel`      | `suggest_mitigation`      | SIEM, threat feeds                   | Apply / Escalate / Dismiss                   |
 
 ### What changes per domain
 
 The server code changes in three places — the rest stays identical:
 
 1. **Tool registration** (`DATA_TOOLS` / `ACTION_TOOLS` sets) — add your tool names
-2. **Data-fetch handler** — swap `fetch_fhir()` for your backend query logic
-3. **Review UI** — replace `show_review_ui()` with your domain's approval interface
+1. **Data-fetch handler** — swap `fetch_fhir()` for your backend query logic
+1. **Review UI** — replace `show_review_ui()` with your domain's approval interface
 
 The pi extension tools follow the same template: `defineTool` with a
 domain-specific schema, `terminate: true` in the return value, and

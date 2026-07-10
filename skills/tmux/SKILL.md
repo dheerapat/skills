@@ -7,7 +7,7 @@ description: Use this skill whenever you need to run long-running commands, back
 
 A structured workflow for creating tmux sessions, executing commands, capturing output, and cleaning up — designed for agents running tasks that need persistent or background shells.
 
----
+______________________________________________________________________
 
 ## Core Workflow
 
@@ -29,7 +29,7 @@ tmux new-session -d -s <session-name>
 tmux has-session -t <session-name> 2>/dev/null && echo "exists" || echo "new"
 ```
 
----
+______________________________________________________________________
 
 ### 2. Send Keys (Run Commands)
 
@@ -53,13 +53,14 @@ tmux send-keys -t task-1 "cd /tmp && ls -la" Enter
 ```
 
 **Tips:**
+
 - Always include `Enter` at the end to execute the command
 - For commands with special characters (quotes, brackets), wrap in single quotes or escape carefully
 - To send a literal `Enter` without a command (e.g., confirm a prompt): `tmux send-keys -t <session-name> "" Enter`
-- To send `Ctrl+C` to stop a process: `tmux send-keys -t <session-name> "" ""`  
+- To send `Ctrl+C` to stop a process: `tmux send-keys -t <session-name> "" ""`\
   → Use: `tmux send-keys -t <session-name> C-c`
 
----
+______________________________________________________________________
 
 ### 3. Capture Output
 
@@ -86,7 +87,7 @@ tmux capture-pane -t <session-name> -p -S -3000
 tmux capture-pane -t <session-name> -p -S -3000 > /tmp/<session-name>-output.txt
 ```
 
----
+______________________________________________________________________
 
 ### 4. Wait for Commands to Finish
 
@@ -118,7 +119,7 @@ done
 cat /tmp/out.txt
 ```
 
----
+______________________________________________________________________
 
 ### 5. Kill (Remove) the Session
 
@@ -134,7 +135,7 @@ tmux kill-session -t <session-name>
 tmux kill-server
 ```
 
----
+______________________________________________________________________
 
 ## Full Example: Run a Script and Capture Output
 
@@ -158,7 +159,7 @@ cat /tmp/myjob-out.txt
 tmux kill-session -t myjob
 ```
 
----
+______________________________________________________________________
 
 ## Parallel Jobs Pattern
 
@@ -186,7 +187,7 @@ tmux kill-session -t job1
 tmux kill-session -t job2
 ```
 
----
+______________________________________________________________________
 
 ## Useful Diagnostic Commands
 
@@ -204,19 +205,19 @@ tmux has-session -t <session-name> 2>/dev/null && echo "exists"
 tmux list-windows -t <session-name>
 ```
 
----
+______________________________________________________________________
 
 ## Common Pitfalls
 
-| Problem | Fix |
-|---|---|
-| Command not running | Check you included `Enter` in `send-keys` |
-| Output is empty | Add a short `sleep 1` before `capture-pane`; the command may not have started yet |
-| Session name conflict | Use `tmux has-session` to check first, or use unique names |
-| Special chars in command | Wrap the command string in single quotes, or escape `$`, `"`, `` ` `` |
-| Process still running after kill | Use `tmux kill-session` (not just closing the pane) |
+| Problem                          | Fix                                                                               |
+| -------------------------------- | --------------------------------------------------------------------------------- |
+| Command not running              | Check you included `Enter` in `send-keys`                                         |
+| Output is empty                  | Add a short `sleep 1` before `capture-pane`; the command may not have started yet |
+| Session name conflict            | Use `tmux has-session` to check first, or use unique names                        |
+| Special chars in command         | Wrap the command string in single quotes, or escape `$`, `"`, `` ` ``             |
+| Process still running after kill | Use `tmux kill-session` (not just closing the pane)                               |
 
----
+______________________________________________________________________
 
 ## Cleanup Reminder
 

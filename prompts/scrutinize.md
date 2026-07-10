@@ -2,6 +2,7 @@
 description: Thorough code review of a GitHub PR with path tracing and structural defect analysis
 argument-hint: "<PR-number-or-URL>"
 ---
+
 From PR $1, use the `gh` cli to check out the PR branch into the local project, then perform a thorough code review.
 
 ## Stance

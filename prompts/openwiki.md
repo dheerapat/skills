@@ -60,6 +60,7 @@ openwiki/
 ```
 
 Rules:
+
 - `quickstart.md` must exist and be the entrypoint with links to all sections
 - Create section directories only when they have multiple substantive pages. Avoid one-file directories unless the page is substantial and likely to grow
 - Merge thin pages and stubs into broader pages or quickstart itself

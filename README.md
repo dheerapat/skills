@@ -25,3 +25,7 @@ npx skills add https://github.com/duckdb/duckdb-skills.git
 ## 🔧 Additional Scripts
 
 - [visual-explainer](https://github.com/nicobailon/visual-explainer) — generate visual diagrams to explain concepts
+
+## Format before push to Github
+
+`uvx --with mdformat-gfm --with mdformat-frontmatter mdformat .`

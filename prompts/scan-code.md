@@ -2,6 +2,7 @@
 description: Scan a code area for tech debt, trace call sites, and identify dead code safe to delete
 argument-hint: "<file-or-symbol>"
 ---
+
 Resolve `$1` (file, class/function, or module dir). Grep definitions, read the file, summarize public API + imports.
 
 ## 1. Tech Debt
@@ -34,6 +35,7 @@ Don't just ask "does anything call this?" — ask "does anything **live** call t
 ### Step 1: Identify Roots
 
 App entry points that are always live:
+
 - `main()`, `index.*`, `App.*`, `app.*`
 - Exported symbols from package entry (`exports` in `package.json`, barrel files)
 - Registered routes (`router.get`, `app.post`, etc.)
@@ -47,14 +49,14 @@ From each root, transitively follow: calls, imports, instantiations, method refe
 
 ### Step 3: Everything Unreached is Dead
 
-| Condition                                            | Verdict              |
-|------------------------------------------------------|----------------------|
-| Never reached from any root                          | 🟢 Safe to delete   |
-| Reached only from test roots                         | 🟡 Production dead  |
-| Reached only from other 🟢 dead symbols             | 🟢 Safe to delete   |
-| Behind dead branches (`if (false)`, unreachable)     | 🟢 Safe to delete   |
-| Listener but event never emitted from live code      | 🟢 Safe to delete   |
-| Reached from live root                               | 🔴 Keep             |
+| Condition                                        | Verdict            |
+| ------------------------------------------------ | ------------------ |
+| Never reached from any root                      | 🟢 Safe to delete  |
+| Reached only from test roots                     | 🟡 Production dead |
+| Reached only from other 🟢 dead symbols          | 🟢 Safe to delete  |
+| Behind dead branches (`if (false)`, unreachable) | 🟢 Safe to delete  |
+| Listener but event never emitted from live code  | 🟢 Safe to delete  |
+| Reached from live root                           | 🔴 Keep            |
 
 For listeners: grep event name against `emit`, `dispatch`, `publish`, `next`, `trigger`, `send`. Emitter exists in live code = live. No emitter or emitter is dead = dead.
 
