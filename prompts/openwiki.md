@@ -1,26 +1,34 @@
 ---
-name: openwiki
-description: Document a repository — explore codebase, architecture, workflows, data models, integrations, tests, ops, and generate structured documentation under /openwiki/. Use when asked to document a repo, create a wiki, make openwiki, initialize/update docs, or "openwiki this". Works for any repo pi is running in.
+description: Document a repository — explore codebase, architecture, workflows, data models, integrations, tests, ops, and generate structured documentation under openwiki/
+argument-hint: "<init|update>"
 ---
 
-# OpenWiki Skill
+# OpenWiki
 
-Turn pi into a documentation agent for any repository. Inspects the codebase and produces navigable Markdown docs under `openwiki/` for humans and future agents.
+Turn pi into a documentation agent for this repository. Inspect the codebase and produce navigable Markdown docs under `openwiki/` for humans and future agents.
 
-## Usage
+Use `$1` to pick mode: `init` = first-time full doc generation, `update` = incremental refresh from git changes.
 
-```
-/user: "openwiki this repo"
-/user: "initialize openwiki docs"
-/user: "update the wiki"
-/user: "/openwiki init"
-/user: "/openwiki update"
-/user: "openwiki: add a page about the CLI"
-```
+## Mode: Init (first run)
 
-## Workflow
+- Assume `openwiki/` has no useful docs yet
+- Build from scratch: repo inventory → quickstart → section pages
+- Use git history to understand how important files/workflows evolved
+- Target at most 8 documentation pages unless repo is very large
+- Do not try to document every source file — document architecture, workflows, domains, data models, integrations, ops, and extension points at the right level
 
-### 1. Discover the repository
+## Mode: Update (incremental)
+
+- Read existing `openwiki/` and `.last-update.json` (if exists)
+- Use git to find what changed: `git log <lastHead>..HEAD --name-status --oneline` or `git diff --name-status HEAD`
+- Build a docs impact plan: source change → which wiki page is affected → edit needed → why
+- Be surgical: replace stale sentences over adding paragraphs, don't rewrite accurate sections
+- Only edit pages directly affected by recent changes. Don't refresh every page
+- No formatting-only edits. Don't normalize tables, blank lines, or reorder lists unless surrounding content is also being edited for accuracy
+- If wiki is already current, say so — don't touch files
+- Updates may be a no-op. If nothing relevant changed, don't edit.
+
+## Discovery
 
 Use pi's tools to explore:
 
@@ -33,11 +41,11 @@ Do not exhaustively read every file. Target: package/config files, entrypoints, 
 
 Ground every claim in source files, docs, or git evidence you've inspected. Do not invent files, modules, APIs, or behavior.
 
-### 2. Create documentation plan
+## Documentation Plan (init only)
 
 After discovery, create a temp `openwiki/_plan.md` listing intended pages, source evidence for each, and open questions. Use `write` to create it.
 
-### 3. Write documentation
+## Writing Docs
 
 Write the docs under `openwiki/`. Structure:
 
@@ -59,7 +67,7 @@ Rules:
 - Keep docs concise — don't repeat same concept across pages, give each concept one canonical home
 - For small repos (~10 primary source files), prefer quickstart + at most 1-2 supporting pages
 
-### 4. Update AGENTS.md / CLAUDE.md
+## Update AGENTS.md / CLAUDE.md
 
 Ensure repo root `/AGENTS.md` and/or `/CLAUDE.md` references the OpenWiki quickstart with this exact section:
 
@@ -82,30 +90,11 @@ When working in this repository, read the OpenWiki quickstart first, then follow
 - During updates, refresh only if section is missing or semantically stale
 - Do not normalize formatting/whitespace if already correct
 
-### 5. Clean up
+## Clean up (init only)
 
 Delete `openwiki/_plan.md`. Do not leave it in the final wiki.
 
-## Init mode (first run)
-
-- Assume `openwiki/` has no useful docs yet
-- Build from scratch: repo inventory → quickstart → section pages
-- Use git history to understand how important files/workflows evolved
-- Target at most 8 documentation pages unless repo is very large
-- Do not try to document every source file — document architecture, workflows, domains, data models, integrations, ops, and extension points at the right level
-
-## Update mode (incremental)
-
-- Read existing `openwiki/` and `.last-update.json` (if exists)
-- Use git to find what changed: `git log <lastHead>..HEAD --name-status --oneline` or `git diff --name-status HEAD`
-- Build a docs impact plan: source change → which wiki page is affected → edit needed → why
-- Be surgical: replace stale sentences over adding paragraphs, don't rewrite accurate sections
-- Only edit pages directly affected by recent changes. Don't refresh every page
-- No formatting-only edits. Don't normalize tables, blank lines, or reorder lists unless surrounding content is also being edited for accuracy
-- If wiki is already current, say so — don't touch files
-- Updates may be a no-op. If nothing relevant changed, don't edit.
-
-## Quality guidelines
+## Quality
 
 - Document why code exists, not just what it does
 - Include change-oriented guidance: where to start, what to watch for, relevant tests
