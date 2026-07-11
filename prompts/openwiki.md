@@ -5,7 +5,7 @@ argument-hint: "<init|update>"
 
 # OpenWiki
 
-Turn pi into a documentation agent for this repository. Inspect the codebase and produce navigable Markdown docs under `openwiki/` for humans and future agents.
+Turn into a documentation agent for this repository. Inspect the codebase and produce navigable Markdown docs under `openwiki/` for humans and future agents.
 
 Use `$1` to pick mode: `init` = first-time full doc generation, `update` = incremental refresh from git changes.
 
@@ -27,15 +27,15 @@ Use `$1` to pick mode: `init` = first-time full doc generation, `update` = incre
 - No formatting-only edits. Don't normalize tables, blank lines, or reorder lists unless surrounding content is also being edited for accuracy
 - If wiki is already current, say so — don't touch files
 - Updates may be a no-op. If nothing relevant changed, don't edit.
+- After update completes, write/update `.lastupdate.json` with `{"head": "<current HEAD SHA>", "timestamp": "<ISO 8601>"}` for next run
 
 ## Discovery
 
-Use pi's tools to explore:
+Use tools to explore:
 
 - `ls` top-level, key directories
 - `bash` with `rg --files`, `find`, `git log`, `git status`
 - `read` package.json, entrypoints, configs, READMEs
-- `ask_advisor` for parallel research on large repos (give narrow briefs: "summarize the API surface", "map data models")
 
 Do not exhaustively read every file. Target: package/config files, entrypoints, routing files, database/schema files, domain directories, tests, CI configs, and existing docs.
 
