@@ -1,6 +1,6 @@
 ---
 name: pdf2md
-description: Convert PDF files to Markdown using @opendocsg/pdf2md. Use when asked to convert a PDF to Markdown or extract text from a PDF.
+description: Convert PDF files to Markdown. Use when user mentioned .pdf file, asked to convert a PDF to Markdown, or you want to extract text from a PDF.
 ---
 
 # pdf2md
