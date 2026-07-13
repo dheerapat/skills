@@ -9,7 +9,11 @@ Converts a single PDF file to Markdown.
 
 ## Setup
 
-Dependencies installed automatically by pi when the package is installed.
+Install dependency first using npm
+
+```bash
+cd <skill-dir> && npm install
+```
 
 ## Usage
 

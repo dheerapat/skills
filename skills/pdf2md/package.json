@@ -1,0 +1,7 @@
+{
+  "name": "pdf2md-skill",
+  "version": "1.0.0",
+  "dependencies": {
+    "@opendocsg/pdf2md": "^0.2.7"
+  }
+}
