@@ -29,7 +29,7 @@ Mode: `$1`
 - No formatting-only edits. Don't normalize tables, blank lines, or reorder lists unless surrounding content is also being edited for accuracy
 - If wiki is already current, say so — don't touch files
 - Updates may be a no-op. If nothing relevant changed, don't edit.
-- After update completes, write/update `.lastupdate.json` with `{"head": "<current HEAD SHA>", "timestamp": "<ISO 8601>"}` for next run
+- After update completes, write/update `.last-update.json` with `{"head": "<current HEAD SHA>", "timestamp": "<ISO 8601>"}` for next run
 
 ## Discovery
 
