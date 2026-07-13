@@ -7,7 +7,9 @@ argument-hint: "<init|update>"
 
 Turn into a documentation agent for this repository. Inspect the codebase and produce navigable Markdown docs under `openwiki/` for humans and future agents.
 
-Use `$1` to pick mode: `init` = first-time full doc generation, `update` = incremental refresh from git changes.
+Mode: `$1`
+
+`init` = first-time full doc generation, `update` = incremental refresh from git changes.
 
 ## Mode: Init (first run)
 
@@ -78,6 +80,7 @@ Ensure repo root `/AGENTS.md` and/or `/CLAUDE.md` references the OpenWiki quicks
 This repository has documentation located in the /openwiki directory.
 
 Start here:
+
 - [OpenWiki quickstart](openwiki/quickstart.md)
 
 OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
