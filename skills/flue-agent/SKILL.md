@@ -5,7 +5,7 @@ description: Create and manage Flue agents — a TypeScript framework for buildi
 
 # Flue Agent Skill
 
-Reference for building and running [Flue](https://flueframework.com) agents. Content sourced from the [quickstart guide](https://flueframework.com/docs/getting-started/quickstart/index.md).
+Reference for building and running [Flue](https://flueframework.com) agents. Content sourced from the [quickstart guide](https://flueframework.com/docs/getting-started/quickstart/index.md), last updated May 29, 2026.
 
 ## Update
 
@@ -29,15 +29,21 @@ Compare the fetched content against the reference sections below. Apply surgical
 - **A coding agent (recommended)** — Several Flue features assume a coding agent available locally
 - **A container sandbox (optional)** — Flue includes a built-in virtual sandbox. For a real VM, use a [container sandbox](https://flueframework.com/docs/ecosystem/#sandboxes)
 
-### Quick setup (recommended)
+### Automatic installation (recommended)
 
 Copy this prompt into a coding agent:
 
 > Read https://flueframework.com/start.md then help create my first agent...
 
+The coding agent guides setup in a new or existing project and answers questions along the way.
+
 ### Manual setup
 
+**Note:** The AI-guided prompt is recommended for most users. Follow the manual steps if you prefer to set things up yourself.
+
 #### 1. Install Flue
+
+In a new directory, install Flue and initialize your target. `flue init` creates `flue.config.ts`; add an agent module in the next step.
 
 ```bash
 npm install @flue/runtime
@@ -48,9 +54,9 @@ npx flue init --target node   # or: --target cloudflare
 
 Add `.env` to `.gitignore`. Do not commit provider credentials. Any LLM provider Pi supports works — see [Pi's Providers docs](https://pi.dev/docs/latest/providers#api-keys).
 
-#### 2. Create first agent module
+#### 2. Create your first agent module
 
-Create `agents/<name>.ts`. The filename becomes the agent name.
+Create `agents/hello-world.ts`. The default export registers the agent, and the filename makes it available in Flue as `hello-world`.
 
 ```ts
 import { defineAgent } from '@flue/runtime';
@@ -61,13 +67,17 @@ export default defineAgent(() => ({
 }));
 ```
 
-#### 3. Run agent locally
+You can choose any [supported model](https://pi.dev/models) and configure its provider credentials.
+
+#### 3. Run your agent locally
 
 ```bash
-npx flue run <agent-name> --input '{"message":"Tell me a joke."}'
+npx flue run hello-world --input '{"message":"Tell me a joke."}'
 ```
 
-Starts the configured runtime, invokes the agent, prints response, exits.
+The command starts your configured Node.js or Cloudflare runtime, invokes the agent through the application, prints its response, and exits.
+
+From here, shape the agent's behavior, add capabilities, or deploy it as part of an application.
 
 ### Next steps
 
