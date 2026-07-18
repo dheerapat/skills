@@ -1,6 +1,6 @@
 ---
 name: tmux
-description: Use this skill whenever you need to run long-running commands, background processes, or interactive shell sessions using tmux. Running commands that take time (builds, tests, servers, installs), running multiple parallel processes, executing commands that need a persistent shell, capturing terminal output after a delay, or any task where you need to start a process and check on it later. Use this skill whenever tmux is mentioned, or when you need to send commands to a shell session and retrieve their output. Always clean up sessions when done.
+description: Use this skill when tmux is needed for a persistent shell, interactive process, background job, parallel jobs, delayed output capture, or a user-requested long-running service. Use it whenever tmux is mentioned or when a command must continue after the invoking tool returns. Clean up temporary sessions when their jobs finish; leave intentionally persistent services running.
 ---
 
 # tmux Skill
@@ -13,7 +13,7 @@ ______________________________________________________________________
 
 ### 1. Create a Session
 
-Always create a **named session** so you can reference it reliably later.
+Create a **named session** so you can reference it reliably later. Prefer a unique, task-specific name to avoid terminating or reusing someone else's session.
 
 ```bash
 tmux new-session -d -s <session-name>
@@ -26,39 +26,40 @@ tmux new-session -d -s <session-name>
 **Check if a session already exists before creating:**
 
 ```bash
-tmux has-session -t <session-name> 2>/dev/null && echo "exists" || echo "new"
+tmux has-session -t <session-name> 2>/dev/null
+# Exit status 0 means it exists; nonzero means it does not.
 ```
 
 ______________________________________________________________________
 
 ### 2. Send Keys (Run Commands)
 
-Use `send-keys` to type a command into a session pane, followed by `Enter`:
+Use `send-keys` to type a command into a session pane, followed by `C-m` (Enter):
 
 ```bash
-tmux send-keys -t <session-name> "<command>" Enter
+tmux send-keys -t <session-name> '<command>' C-m
 ```
 
 **Examples:**
 
 ```bash
 # Run a build
-tmux send-keys -t build "npm run build" Enter
+tmux send-keys -t build 'npm run build' C-m
 
 # Start a server
-tmux send-keys -t server "python -m http.server 8080" Enter
+tmux send-keys -t server 'python -m http.server 8080' C-m
 
 # Chain commands
-tmux send-keys -t task-1 "cd /tmp && ls -la" Enter
+tmux send-keys -t task-1 'cd /tmp && ls -la' C-m
 ```
 
 **Tips:**
 
-- Always include `Enter` at the end to execute the command
-- For commands with special characters (quotes, brackets), wrap in single quotes or escape carefully
-- To send a literal `Enter` without a command (e.g., confirm a prompt): `tmux send-keys -t <session-name> "" Enter`
-- To send `Ctrl+C` to stop a process: `tmux send-keys -t <session-name> "" ""`\
-  → Use: `tmux send-keys -t <session-name> C-c`
+- Always include `C-m` (or `Enter`) at the end to execute the command.
+- The shell running `tmux send-keys` parses quotes, variables, command substitutions, and backslashes before tmux receives them. Quote the command appropriately, and do not interpolate untrusted input into a shell command.
+- For complex or multiline commands, write a temporary script or use a carefully quoted `bash -lc` invocation instead of relying on nested shell quoting.
+- To send a literal `Enter` without a command: `tmux send-keys -t <session-name> C-m`
+- To send `Ctrl+C` to stop a process: `tmux send-keys -t <session-name> C-c`
 
 ______________________________________________________________________
 
@@ -94,11 +95,11 @@ ______________________________________________________________________
 For commands that take time, poll until they complete:
 
 ```bash
-# Simple sleep-and-check loop
+# Simple sleep-and-check loop. Use a unique completion marker.
 for i in $(seq 1 30); do
   sleep 2
   output=$(tmux capture-pane -t <session-name> -p -S -500)
-  echo "$output" | grep -q "<done-marker>" && break
+  echo "$output" | grep -Fq '<done-marker>' && break
 done
 ```
 
@@ -107,33 +108,29 @@ Replace `<done-marker>` with a string that appears when the command finishes (e.
 **Better pattern — redirect output to a file and tail it:**
 
 ```bash
-# Send command with output redirected
-tmux send-keys -t <session-name> "<command> > /tmp/out.txt 2>&1; echo DONE >> /tmp/out.txt" Enter
+# Send command with output redirected and record its exit status.
+tmux send-keys -t <session-name> '<command> > /tmp/<unique-output>.txt 2>&1; status=$?; printf "__EXIT__%s\\n" "$status" >> /tmp/<unique-output>.txt' C-m
 
 # Poll the file
 for i in $(seq 1 60); do
   sleep 1
-  grep -q "DONE" /tmp/out.txt 2>/dev/null && break
+  grep -Fq '__EXIT__' /tmp/<unique-output>.txt 2>/dev/null && break
 done
 
-cat /tmp/out.txt
+cat /tmp/<unique-output>.txt
 ```
 
 ______________________________________________________________________
 
 ### 5. Kill (Remove) the Session
 
-Always clean up when the job is done:
+Clean up temporary sessions when the job is done:
 
 ```bash
 tmux kill-session -t <session-name>
 ```
 
-**Kill all tmux sessions (use with care):**
-
-```bash
-tmux kill-server
-```
+Do not use `tmux kill-server` in a shared environment: it terminates every tmux session, including unrelated user work.
 
 ______________________________________________________________________
 
@@ -143,20 +140,20 @@ ______________________________________________________________________
 # 1. Create session
 tmux new-session -d -s myjob
 
-# 2. Run command, redirect output
-tmux send-keys -t myjob "bash /tmp/myscript.sh > /tmp/myjob-out.txt 2>&1; echo __DONE__ >> /tmp/myjob-out.txt" Enter
+# 2. Run command, redirect output and record its exit status
+tmux send-keys -t myjob 'bash /tmp/myscript.sh > /tmp/myjob-out.txt 2>&1; status=$?; printf "__EXIT__%s\\n" "$status" >> /tmp/myjob-out.txt' C-m
 
 # 3. Wait for completion (up to 60s)
 for i in $(seq 1 60); do
   sleep 1
-  grep -q "__DONE__" /tmp/myjob-out.txt 2>/dev/null && break
+  grep -Fq "__EXIT__" /tmp/myjob-out.txt 2>/dev/null && break
 done
 
 # 4. Capture and display output
 cat /tmp/myjob-out.txt
 
 # 5. Kill session
-tmux kill-session -t myjob
+tmux kill-session -t myjob 2>/dev/null || true
 ```
 
 ______________________________________________________________________
@@ -169,14 +166,16 @@ To run multiple tasks in parallel, create one session per task:
 tmux new-session -d -s job1
 tmux new-session -d -s job2
 
-tmux send-keys -t job1 "task1.sh > /tmp/job1.txt 2>&1; echo DONE >> /tmp/job1.txt" Enter
-tmux send-keys -t job2 "task2.sh > /tmp/job2.txt 2>&1; echo DONE >> /tmp/job2.txt" Enter
+tmux send-keys -t job1 'task1.sh > /tmp/job1.txt 2>&1; status=$?; printf "__EXIT__%s\\n" "$status" >> /tmp/job1.txt' C-m
+tmux send-keys -t job2 'task2.sh > /tmp/job2.txt 2>&1; status=$?; printf "__EXIT__%s\\n" "$status" >> /tmp/job2.txt' C-m
 
 # Wait for both
 for i in $(seq 1 60); do
   sleep 1
-  j1=$(grep -c "DONE" /tmp/job1.txt 2>/dev/null || echo 0)
-  j2=$(grep -c "DONE" /tmp/job2.txt 2>/dev/null || echo 0)
+  j1=0
+  j2=0
+  grep -Fq '__EXIT__' /tmp/job1.txt 2>/dev/null && j1=1
+  grep -Fq '__EXIT__' /tmp/job2.txt 2>/dev/null && j2=1
   [ "$j1" -ge 1 ] && [ "$j2" -ge 1 ] && break
 done
 
@@ -211,20 +210,20 @@ ______________________________________________________________________
 
 | Problem                          | Fix                                                                               |
 | -------------------------------- | --------------------------------------------------------------------------------- |
-| Command not running              | Check you included `Enter` in `send-keys`                                         |
+| Command not running              | Check you included `C-m` or `Enter` in `send-keys`                                 |
 | Output is empty                  | Add a short `sleep 1` before `capture-pane`; the command may not have started yet |
 | Session name conflict            | Use `tmux has-session` to check first, or use unique names                        |
 | Special chars in command         | Wrap the command string in single quotes, or escape `$`, `"`, `` ` ``             |
-| Process still running after kill | Use `tmux kill-session` (not just closing the pane)                               |
+| Process still running after kill | Check for child processes; `kill-session` ends the pane shell but may not stop detached descendants |
 
 ______________________________________________________________________
 
 ## Cleanup Reminder
 
-**Always kill sessions after use.** Lingering sessions consume resources and may cause name conflicts on future runs.
+**Kill temporary sessions after use.** Intentionally persistent services are the exception; document their session name and lifecycle.
 
 ```bash
 tmux kill-session -t <session-name>
 ```
 
-If you created multiple sessions, kill each one explicitly, or use `tmux kill-server` to wipe all sessions if you're certain no other sessions are needed.
+If you created multiple sessions, kill each one explicitly. Avoid `tmux kill-server`, which wipes all sessions for the tmux server.
