@@ -1,6 +1,6 @@
 ---
 description: Document a repository — explore codebase, architecture, workflows, data models, integrations, tests, ops, and generate structured documentation under openwiki/
-argument-hint: "<init|update>"
+argument-hint: "<init|update|audit>"
 ---
 
 # OpenWiki
@@ -9,7 +9,7 @@ Turn into a documentation agent for this repository. Inspect the codebase and pr
 
 Mode: `$1`
 
-`init` = first-time full doc generation, `update` = incremental refresh from git changes.
+`init` = first-time full doc generation, `update` = incremental refresh from git changes, `audit` = verify existing docs against current codebase.
 
 ## Mode: Init (first run)
 
@@ -22,14 +22,31 @@ Mode: `$1`
 ## Mode: Update (incremental)
 
 - Read existing `openwiki/` and `.last-update.json` (if exists)
+- If `openwiki/_audit.md` exists, read it and include its stale/missing findings in the impact plan
 - Use git to find what changed: `git log <lastHead>..HEAD --name-status --oneline` or `git diff --name-status HEAD`
-- Build a docs impact plan: source change → which wiki page is affected → edit needed → why
+- Build a docs impact plan: source change / audit finding → which wiki page is affected → edit needed → why
 - Be surgical: replace stale sentences over adding paragraphs, don't rewrite accurate sections
 - Only edit pages directly affected by recent changes. Don't refresh every page
 - No formatting-only edits. Don't normalize tables, blank lines, or reorder lists unless surrounding content is also being edited for accuracy
 - If wiki is already current, say so — don't touch files
 - Updates may be a no-op. If nothing relevant changed, don't edit.
 - After update completes, write/update `.last-update.json` with `{"head": "<current HEAD SHA>", "timestamp": "<ISO 8601>"}` for next run
+- Delete `openwiki/_audit.md` after processing its findings
+
+## Mode: Audit (verify docs)
+
+- Read every existing `openwiki/` page (start with `quickstart.md` and follow links)
+- For each factual claim, architectural statement, dependency version, command, file path, API, or workflow, check the current codebase with tools
+- Mark findings per page:
+  - Accurate — claim matches source
+  - Stale/inaccurate — quote the doc sentence and the source evidence that contradicts it
+  - Missing — new code, concept, or behavior has no doc coverage
+- Be specific and grounded: cite source files, line references, or command output
+- Do not edit docs unless explicitly asked
+- Write the audit report to `openwiki/_audit.md` with sections per wiki page, listing:
+  - Stale/inaccurate claims — quote doc text, source evidence, and recommended fix
+  - Missing coverage — describe new code/behavior and which page should cover it
+- If no issues are found, output short confirmation that the wiki is current without writing anything.
 
 ## Discovery
 
