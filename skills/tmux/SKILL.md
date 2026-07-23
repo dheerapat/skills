@@ -208,12 +208,12 @@ ______________________________________________________________________
 
 ## Common Pitfalls
 
-| Problem                          | Fix                                                                               |
-| -------------------------------- | --------------------------------------------------------------------------------- |
-| Command not running              | Check you included `C-m` or `Enter` in `send-keys`                                 |
-| Output is empty                  | Add a short `sleep 1` before `capture-pane`; the command may not have started yet |
-| Session name conflict            | Use `tmux has-session` to check first, or use unique names                        |
-| Special chars in command         | Wrap the command string in single quotes, or escape `$`, `"`, `` ` ``             |
+| Problem                          | Fix                                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Command not running              | Check you included `C-m` or `Enter` in `send-keys`                                                  |
+| Output is empty                  | Add a short `sleep 1` before `capture-pane`; the command may not have started yet                   |
+| Session name conflict            | Use `tmux has-session` to check first, or use unique names                                          |
+| Special chars in command         | Wrap the command string in single quotes, or escape `$`, `"`, `` ` ``                               |
 | Process still running after kill | Check for child processes; `kill-session` ends the pane shell but may not stop detached descendants |
 
 ______________________________________________________________________
