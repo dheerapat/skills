@@ -5,6 +5,7 @@
 # requires-python = ">=3.10"
 # ///
 
+# type: ignore[ty:unresolved-import]
 """
 Read-only PostgreSQL query executor.
 
