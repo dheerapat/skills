@@ -17,7 +17,24 @@ Run read-only queries against a ClickHouse database. The bundled script uses [cl
 
 ## Setup — one-time by the user
 
-Before using this skill, the user must configure the connection **outside the agent session**:
+Before using this skill, the user must configure two things **outside the agent session**:
+
+### 1. Use a dedicated SELECT-only user (recommended)
+
+Do **not** connect with an admin or `default` account that has broad privileges. The script sets `readonly = 2`, which blocks persistent table writes, but an admin user can still perform non-DML state changes (for example, `REVOKE`) or run privileged functions and integrations with side effects.
+
+For a genuine read-only guarantee, create a dedicated user with a server-side read-only profile and only `SELECT` grants:
+
+```sql
+CREATE USER readonly_user IDENTIFIED WITH plaintext_password BY '...';
+CREATE SETTINGS PROFILE readonly_profile SETTINGS readonly=2;
+ALTER USER readonly_user SETTINGS PROFILE 'readonly_profile';
+GRANT SELECT ON your_database.* TO readonly_user;
+```
+
+Then set `CLICKHOUSE_USER=readonly_user` in the environment.
+
+### 2. Configure environment variables
 
 ```bash
 export CLICKHOUSE_HOST=your-host.example.com    # ClickHouse Cloud: hostname from the console

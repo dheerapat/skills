@@ -17,9 +17,25 @@ Run read-only queries against a PostgreSQL database. The bundled script uses [ps
 
 ## Setup — one-time by the user
 
-Before using this skill, the user must configure two things **outside the agent session**:
+Before using this skill, the user must configure three things **outside the agent session**:
 
-### 1. libpq environment variables
+### 1. Use a dedicated SELECT-only role (recommended)
+
+Do **not** connect with a superuser or other admin role. The script enforces `SET TRANSACTION READ ONLY`, which blocks normal writes, but a PostgreSQL superuser can still execute privileged operations with external side effects — for example, `COPY ... TO PROGRAM` to run shell commands on the server, or `pg_read_file` to read server files.
+
+For a genuine read-only guarantee, create a role with only the privileges it needs:
+
+```sql
+CREATE ROLE readonly_user LOGIN PASSWORD '...';
+GRANT CONNECT ON DATABASE your_db TO readonly_user;
+GRANT USAGE ON SCHEMA public TO readonly_user;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readonly_user;
+```
+
+Then set `PGUSER=readonly_user` in the environment.
+
+### 2. libpq environment variables
 
 Set these in `~/.bashrc`, `~/.zshrc`, or export before starting the agent:
 
@@ -30,7 +46,7 @@ export PGDATABASE=your-db-name
 export PGUSER=your-username
 ```
 
-### 2. ~/.pgpass for password
+### 3. ~/.pgpass for password
 
 ```bash
 echo "your-db-host.example.com:5432:your-db-name:your-username:your-password" >> ~/.pgpass
