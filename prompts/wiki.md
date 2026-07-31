@@ -1,11 +1,11 @@
 ---
-description: Document a repository — explore codebase, architecture, workflows, data models, integrations, tests, ops, and generate structured documentation under openwiki/
+description: Document a repository — explore codebase, architecture, workflows, data models, integrations, tests, ops, and generate structured documentation under wiki/
 argument-hint: "<init|update|audit>"
 ---
 
-# OpenWiki
+# Wiki
 
-Turn into a documentation agent for this repository. Inspect the codebase and produce navigable Markdown docs under `openwiki/` for humans and future agents.
+Turn into a documentation agent for this repository. Inspect the codebase and produce navigable Markdown docs under `wiki/` for humans and future agents.
 
 Mode: `$1`
 
@@ -13,7 +13,7 @@ Mode: `$1`
 
 ## Mode: Init (first run)
 
-- Assume `openwiki/` has no useful docs yet
+- Assume `wiki/` has no useful docs yet
 - Build from scratch: repo inventory → quickstart → section pages
 - Use git history to understand how important files/workflows evolved
 - Target at most 8 documentation pages unless repo is very large
@@ -21,8 +21,8 @@ Mode: `$1`
 
 ## Mode: Update (incremental)
 
-- Read existing `openwiki/` and `.last-update.json` (if exists)
-- If `openwiki/_audit.md` exists, read it and include its stale/missing findings in the impact plan
+- Read existing `wiki/` and `.last-update.json` (if exists)
+- If `wiki/_audit.md` exists, read it and include its stale/missing findings in the impact plan
 - Use git to find what changed: `git log <lastHead>..HEAD --name-status --oneline` or `git diff --name-status HEAD`
 - Build a docs impact plan: source change / audit finding → which wiki page is affected → edit needed → why
 - Be surgical: replace stale sentences over adding paragraphs, don't rewrite accurate sections
@@ -31,11 +31,11 @@ Mode: `$1`
 - If wiki is already current, say so — don't touch files
 - Updates may be a no-op. If nothing relevant changed, don't edit.
 - After update completes, write/update `.last-update.json` with `{"head": "<current HEAD SHA>", "timestamp": "<ISO 8601>"}` for next run
-- Delete `openwiki/_audit.md` after processing its findings
+- Delete `wiki/_audit.md` after processing its findings
 
 ## Mode: Audit (verify docs)
 
-- Read every existing `openwiki/` page (start with `quickstart.md` and follow links)
+- Read every existing `wiki/` page (start with `quickstart.md` and follow links)
 - For each factual claim, architectural statement, dependency version, command, file path, API, or workflow, check the current codebase with tools
 - Mark findings per page:
   - Accurate — claim matches source
@@ -43,7 +43,7 @@ Mode: `$1`
   - Missing — new code, concept, or behavior has no doc coverage
 - Be specific and grounded: cite source files, line references, or command output
 - Do not edit docs unless explicitly asked
-- Write the audit report to `openwiki/_audit.md` with sections per wiki page, listing:
+- Write the audit report to `wiki/_audit.md` with sections per wiki page, listing:
   - Stale/inaccurate claims — quote doc text, source evidence, and recommended fix
   - Missing coverage — describe new code/behavior and which page should cover it
 - If no issues are found, output short confirmation that the wiki is current without writing anything.
@@ -62,14 +62,14 @@ Ground every claim in source files, docs, or git evidence you've inspected. Do n
 
 ## Documentation Plan (init only)
 
-After discovery, create a temp `openwiki/_plan.md` listing intended pages, source evidence for each, and open questions. Use `write` to create it.
+After discovery, create a temp `wiki/_plan.md` listing intended pages, source evidence for each, and open questions. Use `write` to create it.
 
 ## Writing Docs
 
-Write the docs under `openwiki/`. Structure:
+Write the docs under `wiki/`. Structure:
 
 ```
-openwiki/
+wiki/
 ├── quickstart.md          # Entrypoint — repo overview + links to sections
 ├── architecture/          # Runtime shape, modules, execution flow
 ├── workflows/             # Key workflows and processes
@@ -89,20 +89,20 @@ Rules:
 
 ## Update AGENTS.md / CLAUDE.md
 
-Ensure repo root `/AGENTS.md` and/or `/CLAUDE.md` references the OpenWiki quickstart with this exact section:
+Ensure repo root `/AGENTS.md` and/or `/CLAUDE.md` references the Wiki quickstart with this exact section:
 
 ```markdown
-## OpenWiki
+## Wiki
 
-This repository has documentation located in the /openwiki directory.
+This repository has documentation located in the /wiki directory.
 
 Start here:
 
-- [OpenWiki quickstart](openwiki/quickstart.md)
+- [Wiki quickstart](wiki/quickstart.md)
 
-OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
+Wiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
 
-When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
+When working in this repository, read the Wiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
 ```
 
 - If file exists, add/update the section (preserve surrounding content, no duplicates)
@@ -113,7 +113,7 @@ When working in this repository, read the OpenWiki quickstart first, then follow
 
 ## Clean up (init only)
 
-Delete `openwiki/_plan.md`. Do not leave it in the final wiki.
+Delete `wiki/_plan.md`. Do not leave it in the final wiki.
 
 ## Quality
 

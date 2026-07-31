@@ -1,30 +1,30 @@
 ---
-name: openwiki
-description: Document a repository — explore codebase, architecture, workflows, data models, integrations, tests, ops, and generate structured documentation under /openwiki/. Use when asked to document a repo, create a wiki, make openwiki, initialize/update docs, or "openwiki this".
+name: wiki
+description: Document a repository — explore codebase, architecture, workflows, data models, integrations, tests, ops, and generate structured documentation under /wiki/. Use when asked to document a repo, create a wiki, make wiki, initialize/update docs, or "wiki this".
 ---
 
-# OpenWiki Skill
+# Wiki Skill
 
-Turn into a documentation agent for any repository. Inspects the codebase and produces navigable Markdown docs under `openwiki/` for humans and future agents.
+Turn into a documentation agent for any repository. Inspects the codebase and produces navigable Markdown docs under `wiki/` for humans and future agents.
 
 ## Usage
 
 ```
-user: "openwiki this repo"
-user: "initialize openwiki docs"
+user: "wiki this repo"
+user: "initialize wiki docs"
 user: "update the wiki"
-user: "/openwiki init"
-user: "/openwiki update"
-user: "openwiki: add a page about the CLI"
+user: "/wiki init"
+user: "/wiki update"
+user: "wiki: add a page about the CLI"
 ```
 
 ## Mode of Operation
 
 ### Init mode (first run)
 
-Invoke by `/openwiki init`
+Invoke by `/wiki init`
 
-- Assume `openwiki/` has no useful docs yet
+- Assume `wiki/` has no useful docs yet
 - Build from scratch: repo inventory → quickstart → section pages
 - Use git history to understand how important files/workflows evolved
 - Target at most 8 documentation pages unless repo is very large
@@ -32,9 +32,9 @@ Invoke by `/openwiki init`
 
 ### Update mode (incremental)
 
-Invoke by `/openwiki update`
+Invoke by `/wiki update`
 
-- Read existing `openwiki/` and `.last-update.json` (if exists)
+- Read existing `wiki/` and `.last-update.json` (if exists)
 - Use git to find what changed: `git log <lastHead>..HEAD --name-status --oneline` or `git diff --name-status HEAD`
 - Build a docs impact plan: source change → which wiki page is affected → edit needed → why
 - Be surgical: replace stale sentences over adding paragraphs, don't rewrite accurate sections
@@ -60,14 +60,14 @@ Ground every claim in source files, docs, or git evidence you've inspected. Do n
 
 ### 2. Create documentation plan
 
-After discovery, create a temp `openwiki/_plan.md` listing intended pages, source evidence for each, and open questions. Use `write` to create it.
+After discovery, create a temp `wiki/_plan.md` listing intended pages, source evidence for each, and open questions. Use `write` to create it.
 
 ### 3. Write documentation
 
-Write the docs under `openwiki/`. Structure:
+Write the docs under `wiki/`. Structure:
 
 ```
-openwiki/
+wiki/
 ├── quickstart.md          # Entrypoint — repo overview + links to sections
 ├── architecture/          # Runtime shape, modules, execution flow
 ├── workflows/             # Key workflows and processes
@@ -87,19 +87,19 @@ Rules:
 
 ### 4. Update AGENTS.md / CLAUDE.md
 
-Ensure repo root `/AGENTS.md` and/or `/CLAUDE.md` references the OpenWiki quickstart with this exact section:
+Ensure repo root `/AGENTS.md` and/or `/CLAUDE.md` references the Wiki quickstart with this exact section:
 
 ```markdown
-## OpenWiki
+## Wiki
 
-This repository has documentation located in the /openwiki directory.
+This repository has documentation located in the /wiki directory.
 
 Start here:
-- [OpenWiki quickstart](openwiki/quickstart.md)
+- [Wiki quickstart](wiki/quickstart.md)
 
-OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
+Wiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
 
-When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
+When working in this repository, read the Wiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
 ```
 
 - If file exists, add/update the section (preserve surrounding content, no duplicates)
@@ -110,7 +110,7 @@ When working in this repository, read the OpenWiki quickstart first, then follow
 
 ### 5. Clean up
 
-Delete `openwiki/_plan.md`. Do not leave it in the final wiki.
+Delete `wiki/_plan.md`. Do not leave it in the final wiki.
 
 ## Quality guidelines
 
