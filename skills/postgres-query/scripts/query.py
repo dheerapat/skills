@@ -20,7 +20,6 @@ Errors and diagnostics go to stderr. Results go to stdout.
 
 import argparse
 import json
-import os
 import sys
 import textwrap
 
@@ -181,7 +180,11 @@ def main():
             print(f"Connecting with explicit params: {safe}", file=sys.stderr)
 
     try:
-        conn = psycopg.connect(conninfo) if conninfo else psycopg.connect()
+        conn = (
+            psycopg.connect(**conninfo)
+            if isinstance(conninfo, dict)
+            else psycopg.connect(conninfo or "")
+        )
     except Exception as e:
         print(f"Error: connection failed — {e}", file=sys.stderr)
         sys.exit(1)
@@ -194,7 +197,8 @@ def main():
                 "SELECT set_config('statement_timeout', %s, true)",
                 (f"{args.timeout}s",),
             )
-            cur.execute(query, prepare=False)
+            # Extended protocol rejects multiple statements, preventing COMMIT/ROLLBACK escapes.
+            cur.execute(query, prepare=True)
             columns = [desc.name for desc in cur.description] if cur.description else []
             rows = cur.fetchall()
     except Exception as e:

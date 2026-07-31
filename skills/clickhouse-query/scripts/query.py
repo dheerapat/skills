@@ -16,9 +16,9 @@ Connects using CLICKHOUSE_HOST, CLICKHOUSE_PORT, CLICKHOUSE_DATABASE,
 CLICKHOUSE_USER, CLICKHOUSE_PASSWORD (and CLICKHOUSE_SECURE for TLS)
 environment variables. No connection details in the command line.
 
-Enforces read-only server-side with `SET readonly = 2` right after
-connecting. Any INSERT, CREATE, ALTER, DROP, SET, or other write or
-state-changing query is rejected by the server with error 164 (READONLY).
+Enforces persistent-data read-only mode server-side with `SET readonly = 2`
+right after connecting. Persistent DDL, DML, and setting downgrade attempts
+are rejected by the server with error 164 (READONLY).
 
 Errors and diagnostics go to stderr. Results go to stdout.
 """

@@ -158,6 +158,7 @@ uv run scripts/query.py \
 
 ## Safety
 
-- The script sets `SET TRANSACTION READ ONLY` before every query. Any `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, or other write operation is rejected by the database server.
+- The script sets `SET TRANSACTION READ ONLY` before every query and uses PostgreSQL's single-statement extended protocol. Persistent `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, transaction-control escapes, and other database writes are rejected even when the connection user is a superuser.
+- This is a database-state guard, not a security boundary for admin credentials. A superuser can invoke read-only-transaction-compatible operations with external or operational side effects, such as `COPY ... TO PROGRAM` or privileged functions. Use a dedicated `SELECT`-only role when untrusted queries or a strong read-only guarantee are involved.
 - Connection errors, query errors, and timeouts print descriptive messages to stderr and exit with code 1.
 - Structured output goes to stdout only — diagnostics are always on stderr, so JSON/CSV output remains parseable.

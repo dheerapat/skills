@@ -163,7 +163,8 @@ uv run scripts/query.py \
 
 ## Safety
 
-- The script sets `SET readonly = 2` immediately after connecting. `readonly` is a one-way ratchet — it cannot be lowered within the session. Any `INSERT`, `ALTER`, `DROP`, `TRUNCATE`, `CREATE` (persistent), or other write operation is rejected by the server with error 164 (`READONLY`). Session settings and in-memory temporary tables remain available, as with PostgreSQL `READ ONLY` transactions.
+- The script sets `SET readonly = 2` immediately after connecting. `readonly` is a one-way ratchet — it cannot be lowered within the session. Persistent `INSERT`, `DELETE`, `ALTER`, `DROP`, `TRUNCATE`, `CREATE`, mutations, and other table writes are rejected by the server with error 164 (`READONLY`). Session settings and in-memory temporary tables remain available.
+- This is a persistent-data guard, not a security boundary for admin credentials. ClickHouse permits some non-DML state changes in read-only mode (for example, `REVOKE`). Privileged functions and external integrations may also have side effects. Use a dedicated `SELECT`-only user and a server-side read-only profile when untrusted queries or a strong read-only guarantee are involved.
 - The `--timeout` is applied as a server-side `max_execution_time` session limit before enabling read-only.
 - Connection errors, query errors, and timeouts print descriptive messages (with ClickHouse error code, e.g. `164 READONLY`, `159 TIMEOUT_EXCEEDED`) to stderr and exit with code 1.
 - Structured output goes to stdout only — diagnostics are always on stderr, so JSON/CSV output remains parseable.
