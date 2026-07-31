@@ -1,5 +1,5 @@
 ---
-name: postgres
+name: postgres-query
 description: Run read-only SQL queries against PostgreSQL databases. Connect via libpq environment variables and ~/.pgpass — no connection details exposed to the agent.
 ---
 
