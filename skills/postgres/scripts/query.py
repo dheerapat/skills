@@ -180,27 +180,27 @@ def main():
             print(f"Connecting with explicit params: {safe}", file=sys.stderr)
 
     try:
-        conn = (
-            psycopg.connect(conninfo, autocommit=True)
-            if conninfo
-            else psycopg.connect(autocommit=True)
-        )
+        conn = psycopg.connect(conninfo) if conninfo else psycopg.connect()
     except Exception as e:
         print(f"Error: connection failed — {e}", file=sys.stderr)
         sys.exit(1)
 
     cur = conn.cursor()
     try:
-        cur.execute("SET TRANSACTION READ ONLY")
-        cur.execute(query, prepare=False, timeout=args.timeout)
+        with conn.transaction():
+            cur.execute("SET TRANSACTION READ ONLY")
+            cur.execute(
+                "SELECT set_config('statement_timeout', %s, true)",
+                (f"{args.timeout}s",),
+            )
+            cur.execute(query, prepare=False)
+            columns = [desc.name for desc in cur.description] if cur.description else []
+            rows = cur.fetchall()
     except Exception as e:
         print(f"Error: query failed — {e}", file=sys.stderr)
         cur.close()
         conn.close()
         sys.exit(1)
-
-    columns = [desc.name for desc in cur.description] if cur.description else []
-    rows = cur.fetchall()
 
     if args.verbose:
         print(f"Rows returned: {len(rows)}", file=sys.stderr)
