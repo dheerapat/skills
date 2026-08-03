@@ -202,7 +202,11 @@ def format_table(columns, rows, out):
 
 def main():
     args = parse_args()
+    # Timeout is applied client-side (HTTP read timeout) because the server
+    # profile may declare settings like max_execution_time as READONLY.
     conn_kwargs = build_conn_kwargs(args)
+    if args.timeout > 0 and "dsn" not in conn_kwargs:
+        conn_kwargs["send_receive_timeout"] = args.timeout
     query = get_query(args)
 
     if not query:
@@ -236,17 +240,18 @@ def main():
         print(f"Error: connection failed — {e}", file=sys.stderr)
         sys.exit(1)
 
+    # Best-effort session setup: the server-side settings profile may already
+    # enforce readonly=2 (in which case SET is rejected with 164 READONLY and we
+    # keep going — the guard is already active). Per-query timeout passes as a
+    # query setting instead of a session SET, which readonly mode permits.
     try:
-        # Session-level execution timeout BEFORE readonly (per-query settings are
-        # rejected under readonly=2). 0 = unlimited.
-        if args.timeout > 0:
-            client.command(f"SET max_execution_time = {args.timeout}")
-        # Server-side read-only enforcement: writes fail with error 164 (READONLY).
         client.command("SET readonly = 2")
     except Exception as e:
-        print(f"Error: failed to set read-only mode — {e}", file=sys.stderr)
-        client.close()
-        sys.exit(1)
+        code = getattr(e, "code", None)
+        if code != 164:
+            print(f"Error: failed to set read-only mode — {e}", file=sys.stderr)
+            client.close()
+            sys.exit(1)
 
     try:
         result = client.query(query)
