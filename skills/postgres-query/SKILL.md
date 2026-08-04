@@ -21,9 +21,9 @@ Before using this skill, the user must configure three things **outside the agen
 
 ### 1. Use a dedicated SELECT-only role (recommended)
 
-Do **not** connect with a superuser or other admin role. The script enforces `SET TRANSACTION READ ONLY`, which blocks normal writes, but a PostgreSQL superuser can still execute privileged operations with external side effects — for example, `COPY ... TO PROGRAM` to run shell commands on the server, or `pg_read_file` to read server files.
+Do **not** connect with a superuser or other admin role. The script rejects **every** query when the session role has any elevated privilege flag — a dedicated read-only role is mandatory, not optional. The `SELECT`-only role below is the only supported configuration.
 
-For a genuine read-only guarantee, create a role with only the privileges it needs:
+Create a role with only the privileges it needs:
 
 ```sql
 CREATE ROLE readonly_user LOGIN PASSWORD '...';
@@ -57,7 +57,24 @@ PostgreSQL ignores `.pgpass` if permissions are not `600`.
 
 ## What the agent does
 
-### Check if .pgpass exists
+### 1. Verify the session is a plain read-only role
+
+Run the privilege check **before any query** to confirm the environment is set up correctly:
+
+```bash
+uv run scripts/query.py \
+  "SELECT rolname, rolsuper, rolcreaterole, rolcreatedb, rolbypassrls, rolreplication FROM pg_roles WHERE rolname = current_user" \
+  --format table
+```
+
+This is a gate, not just reporting: the script rejects every query with exit code 3 when the session role has any elevated flag (`rolsuper`, `rolcreaterole`, `rolcreatedb`, `rolbypassrls`, `rolreplication`) or cannot be verified in `pg_roles`. No exceptions — a privileged session never executes a query, even a "harmless" read-only one.
+
+Report the result to the user:
+
+- All flags `false` → "Session is a plain read-only role. Proceeding."
+- Any flag `true` or rejection with exit code 3 → "Session is not a read-only role — queries are rejected. Configure `readonly_user` (see Setup) and restart the agent session." Do not attempt to work around the rejection.
+
+### 2. Check if .pgpass exists
 
 ```bash
 test -f ~/.pgpass && echo "found" || echo "missing"
@@ -75,13 +92,15 @@ If `.pgpass` is missing, tell the user:
 
 Do not ask for or accept connection details. The user configures them outside the agent session.
 
-The script uses `$PGHOST`, `$PGPORT`, `$PGDATABASE`, `$PGUSER` from the environment and `~/.pgpass` for the password. Reference these variables in commands — bash expands them, the agent never sees the actual values.
+### 3. Run the query
+
+The script uses `$PGHOST`, `$PGPORT`, `$PGDATABASE`, `$PGUSER` from the environment and `~/.pgpass` for the password. Reference these variables in commands — bash expands them, the agent never sees the actual values. The script validates the SQL shape (single read-only `SELECT`, CTEs allowed) and the session role before anything reaches the database — if the query is rejected (shape or privileges), report the error verbatim and stop. Do not attempt to work around a rejection.
 
 ## Available script
 
 | Script             | Description                                              |
 | ------------------ | -------------------------------------------------------- |
-| `scripts/query.py` | Execute a read-only SQL query, results as JSON/CSV/table |
+| `scripts/query.py` | Execute a read-only PostgreSQL query (SELECT-only validation + role privilege gate), results as JSON/CSV/table |
 
 Uses [PEP 723](https://peps.python.org/pep-0723/) inline metadata — `uv run` installs dependencies on demand. No manual install step needed.
 
@@ -170,11 +189,17 @@ uv run scripts/query.py \
 uv run scripts/query.py \
   "SELECT pid, now() - pg_stat_activity.query_start AS duration, query, state FROM pg_stat_activity WHERE state != 'idle' ORDER BY duration DESC" \
   --format table
+
+# EXPLAIN ANALYZE a slow query (executes it — the inner statement must be read-only)
+uv run scripts/query.py \
+  "EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM orders WHERE status = 'pending'" \
+  --format table
 ```
 
 ## Safety
 
-- The script sets `SET TRANSACTION READ ONLY` before every query and uses PostgreSQL's single-statement extended protocol. Persistent `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, transaction-control escapes, and other database writes are rejected even when the connection user is a superuser.
-- This is a database-state guard, not a security boundary for admin credentials. A superuser can invoke read-only-transaction-compatible operations with external or operational side effects, such as `COPY ... TO PROGRAM` or privileged functions. Use a dedicated `SELECT`-only role when untrusted queries or a strong read-only guarantee are involved.
-- Connection errors, query errors, and timeouts print descriptive messages to stderr and exit with code 1.
+- **Query-shape validation (static, before connecting):** the script parses the input with sqlglot (Postgres dialect) and accepts only a single read-only `SELECT` — CTEs and set operations (`UNION`/`INTERSECT`/`EXCEPT`) are allowed, and anything inside a CTE must also be read-only. `EXPLAIN` / `EXPLAIN ANALYZE` is allowed only when it wraps a read-only `SELECT` (it executes the query, so the inner statement must pass the same validation). DML/DDL (`INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, …), transaction control, `COPY`, `LISTEN`/`NOTIFY`, locking reads (`SELECT ... FOR UPDATE`), multi-statement input, and unparseable SQL are rejected with exit code 3 before a connection is ever made. Note: this is statement-level validation — it does not inspect function bodies (e.g. `SELECT nextval(...)` still parses as a `SELECT`); read-only side effects are limited by the READ ONLY transaction and the privilege gate below.
+- **Privilege gate (deterministic, no exceptions):** before every query the script checks the session role's flags (`rolsuper`, `rolcreaterole`, `rolcreatedb`, `rolbypassrls`, `rolreplication`) and exits with code 3 — rejecting the query — if any flag is set or the role cannot be verified in `pg_roles`. A privileged session never executes a query, even a read-only one.
+- The script sets `SET TRANSACTION READ ONLY` before every query and uses PostgreSQL's single-statement extended protocol. Persistent `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, transaction-control escapes, and other database writes are rejected.
+- Connection errors, query errors, and timeouts print descriptive messages to stderr and exit with code 1; validation rejections (query shape or privileges) exit with code 3.
 - Structured output goes to stdout only — diagnostics are always on stderr, so JSON/CSV output remains parseable.
