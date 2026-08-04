@@ -1,15 +1,15 @@
 ---
 name: flue-agent
-description: Create and manage Flue agents — a TypeScript framework for building AI agents with harness-driven architecture. Use when creating Flue projects, running npx flue commands, editing flue.config.ts or agent modules, writing defineAgent() code, or deploying Flue agents to Node.js/Cloudflare targets.
+description: Create and manage Flue agents — a TypeScript framework for building AI agents with a React-like hooks API and harness-driven architecture. Use when creating Flue projects, running npx flue / vite commands, editing flue.config.ts, agent modules, app.ts routing, or writing hooks-based agent code for Node.js/Cloudflare targets.
 ---
 
-# Flue Framework Skill
+# Flue Framework Skill (v2)
 
-Comprehensive knowledge base for **Flue** — the TypeScript framework for building autonomous AI agents and workflows. Flue uses a harness-driven architecture: define agents by filling a harness with instructions, tools, skills, sessions, and a sandbox, then point a model at it.
+Comprehensive knowledge base for **Flue** — the TypeScript framework for building autonomous AI agents. v2 uses a React-like **agent function + hooks** model: an agent is a plain exported function marked with the `'use agent'` directive; its return string is the system prompt; hooks (`useModel`, `useTool`, …) declare capabilities. Build/dev is Vite-based (`vite dev`, `vite build`); the CLI (`flue init/run/add/update/docs`) scaffolds and runs single agents.
 
-**Version reference:** v0.x (as of May–Jun 2026)
+**Version reference:** v2.0.x (as of Aug 2026)
 **Source:** https://flueframework.com/docs/
-**Reference docs:** `./reference/` directory
+**Reference docs:** `./reference/` directory (downloaded mirror of the live docs)
 
 ______________________________________________________________________
 
@@ -19,17 +19,19 @@ ______________________________________________________________________
 1. [Getting Started](#getting-started)
 1. [Project Layout](#project-layout)
 1. [Agents](#agents)
-1. [Workflows](#workflows)
-1. [Actions](#actions)
+1. [Agent Hooks](#agent-hooks)
+1. [Models](#models--providers)
 1. [Tools](#tools)
+1. [MCP](#mcp)
 1. [Skills](#skills)
 1. [Subagents](#subagents)
 1. [Sandboxes](#sandboxes)
-1. [Models & Providers](#models--providers)
 1. [Routing](#routing)
 1. [Database](#database)
+1. [Durability](#durability)
 1. [Channels](#channels)
 1. [Schedules](#schedules)
+1. [Workflows](#workflows)
 1. [Evals](#evals)
 1. [Observability](#observability)
 1. [React Frontend](#react-frontend)
@@ -42,40 +44,36 @@ ______________________________________________________________________
 
 ## Core Concepts
 
-### Harness Architecture
+### Agent function + hooks
 
-An LLM alone is a "brain in a jar" — extraordinary at reasoning, no memory, no hands, no senses. Flue's core insight: **an agent = a model + a harness**.
-
-The harness provides:
-
-- **Filesystem** — so the agent keeps its work
-- **Tools** — so the agent acts, not just describes
-- **Sandbox** — safe execution boundary
-- **Context** — sharp across long work
-- **Subagents** — multi-tasking
+An agent is a **plain synchronous function** that returns its system-prompt instructions. Mark its module with the `'use agent'` directive (a string literal at the top of the file, before imports) and export the function — every exported **capitalized** function in a marked module is registered as an agent. The function name (or an `agentName` static) is the agent's durable identity.
 
 ```ts
-import { defineAgent } from '@flue/runtime';
+'use agent';
+import { useModel, useSandbox, useSkill, useTool } from '@flue/runtime';
 import { local } from '@flue/runtime/node';
+import { searchIssues } from '../tools/search-issues.ts';
+import reviewChecklist from '../skills/review-checklist/SKILL.md';
 
-export default defineAgent(() => ({
-  model: 'anthropic/claude-sonnet-4-6',
-  instructions,  // who the agent is and how it works
-  tools,         // what it can do
-  skills,        // expertise it can load on demand
-  sandbox: local(), // where it runs, safely
-}));
+export function TriageAgent() {
+  useModel('anthropic/claude-sonnet-4-6');
+  useSandbox(local());
+  useTool(searchIssues);
+  useSkill(reviewChecklist);
+  return 'Investigate the reported issue and recommend the next action.';
+}
 ```
 
-### Design Principles
+- The agent function **re-renders before every model call** (like a React render). The returned string always reflects current state.
+- Hooks may be **conditional**: a tool/skill/subagent/sandbox that appears or disappears between renders is added/removed at the next turn boundary and narrated to the model as a signal.
+- **Rules**: functions must be synchronous and return a string or `undefined`; `useModel()` is required exactly once per render; duplicate names (tools, skills, subagents, state, data writers) within one render throw; renders never nest (delegation is via `useSubagent`).
+- Renders are pure reads — write functions (state setters, data writers, dispatchers) throw if called during a render; call them from tool `run` and other callbacks.
 
-1. **Harness-first** — fill a harness with context, point a model at it, no scripting required.
-1. **Open by default** — open models, sandboxes, deploys. No lock-in.
-1. **AI-first** — designed to be used with your coding agent (Claude Code, Codex, etc.).
+### Headless agents
 
-### Headless Agents
+A Flue agent is **programmable** and **headless**: you interact via CLI (`flue run`), in-process JS (`init()`/`dispatch()`), or HTTP routes mounted in `app.ts` (`POST/GET /agents/<name>/<id>`).
 
-A Flue agent is **programmable** (you assemble and drive it in code) and **headless** (no CLI/chat UI of its own). You call agents from your own code, via HTTP, or through application-owned dispatch.
+Full reference: `./reference/docs_guide_building-agents_index.md`, `./reference/docs_reference_agent-api_index.md`
 
 ______________________________________________________________________
 
@@ -83,375 +81,429 @@ ______________________________________________________________________
 
 ### Prerequisites
 
-- **Node.js** `>=22.19.0`
-- **LLM** — model specifier (e.g., `anthropic/claude-sonnet-4-6`)
-- **API key** for your chosen provider
+- **Node.js** `>=22.19.0` (native TS type-stripping for `flue.config.ts`)
+- **LLM** API key for a Pi-supported provider (e.g. `ANTHROPIC_API_KEY`)
 
 ### Quick Install
 
 ```bash
 mkdir my-agent && cd my-agent
-npm install @flue/runtime
-npm install --save-dev @flue/cli
+npm install @flue/runtime @flue/cli
+npx flue init --target node   # or: --target cloudflare
 echo 'ANTHROPIC_API_KEY="your-api-key"' > .env
-npx flue init --target node  # or: --target cloudflare
 ```
-
-Add `.env` to `.gitignore`.
 
 ### First Agent
 
-Create `src/agents/hello-world.ts` (or `.flue/agents/` for `.flue` layout):
+`npx flue init` scaffolds `src/agents/hello.ts` with a ready `'use agent'` agent — no `defineAgent()` needed:
 
 ```ts
-import { defineAgent } from '@flue/runtime';
+'use agent';
+import { useModel } from '@flue/runtime';
 
-export default defineAgent(() => ({
-  model: 'anthropic/claude-sonnet-4-6',
-  instructions: 'Tell a funny "hello world" engineering joke.',
-}));
+export function Assistant() {
+  useModel('anthropic/claude-haiku-4-5');
+  return 'You are a helpful assistant. Keep replies short.';
+}
 ```
 
 ### Run It
 
 ```bash
-npx flue run hello-world --input '{"message":"Tell me a joke."}'
+npx flue run src/agents/assistant.ts --message "Say hello in five words or fewer."
+# Persistent conversations: reuse --id
+npx flue run src/agents/assistant.ts --id hello-1 --message "Give me three more."
 ```
+
+### Serve It (HTTP)
+
+```bash
+npm install @flue/vite hono vite
+```
+
+`vite.config.ts`:
+
+```ts
+import { flue } from '@flue/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [flue()], // Cloudflare: plugins: [flue(), cloudflare()]
+});
+```
+
+`src/app.ts` (required route map):
+
+```ts
+import { createAgentRouter } from '@flue/runtime/routing';
+import { Hono } from 'hono';
+import { Assistant } from './agents/assistant.ts';
+
+const app = new Hono();
+app.route('/agents/assistant', createAgentRouter(Assistant));
+export default app;
+```
+
+```bash
+npx vite dev   # serves on http://localhost:5173
+curl -X POST http://localhost:5173/agents/assistant/hello-1 \
+  -H 'content-type: application/json' \
+  -d '{"kind":"user","body":"Tell me a joke."}'
+```
+
+Full reference: `./reference/docs_guide_getting-started_index.md`
 
 ______________________________________________________________________
 
 ## Project Layout
 
-Flue discovers entrypoints from one source directory (first-existing wins):
+Flue selects one source directory (first existing wins): `.flue/` (self-contained area in a larger app) → `src/` (recommended) → project root. Layouts are not merged.
 
-1. `.flue/` — self-contained Flue area in a larger app
-1. `src/` — **recommended** for new projects
-1. Project root — compact layout
+| Path                | Purpose                                                  | Docs       |
+| ------------------- | -------------------------------------------------------- | ---------- |
+| `src/app.ts`        | HTTP route map, server entrypoint (**required**)         | Routing    |
+| `src/db.ts`         | Optional persistence adapter (Node only)                 | Database   |
+| `src/cloudflare.ts` | Optional CF handlers: `scheduled`, `queue`, …            | Cloudflare |
+| `src/agents/*.ts`   | `'use agent'` modules (any file works, not just agents/) | Agents     |
+| `flue.config.ts`    | Optional project config (`target`, `providers`, …)       | Config     |
+| `vite.config.ts`    | Vite config with `flue()` plugin (required for serving)  | Deploy     |
+| `wrangler.jsonc`    | Cloudflare config; migrations must be user-authored      | Cloudflare |
 
-### Files and Directories
-
-| Path            | Purpose                                            | Docs       |
-| --------------- | -------------------------------------------------- | ---------- |
-| `app.ts`        | Optional custom HTTP entrypoint (Hono app)         | Routing    |
-| `db.ts`         | Optional Node.js persistence adapter               | Database   |
-| `cloudflare.ts` | Cloudflare-only Worker exports & non-HTTP handlers | Cloudflare |
-| `agents/`       | Addressable agents (filename = agent name)         | Agents     |
-| `workflows/`    | Finite operations (filename = workflow name)       | Workflows  |
-| `channels/`     | Provider HTTP integrations                         | Channels   |
-
-### Source Directory Rules
-
-- Flue does **not** merge layouts — only one source directory discovered
-- Nested files inside `agents/`, `workflows/`, `channels/` are NOT discovered
-- Use `lower-kebab-case` filenames for portability
-
-### Output Directory
-
-`dist/` is default. Configure in `flue.config.ts`:
+### `flue.config.ts`
 
 ```ts
-import { defineConfig } from '@flue/cli/config';
+import { defineConfig } from '@flue/runtime/config'; // note: @flue/runtime/config, NOT @flue/cli/config
 
 export default defineConfig({
-  output: './build',
+  target: 'node', // 'node' | 'cloudflare'; auto-detected from cloudflare() plugin when unset
+  providers: ['anthropic', 'openai'], // exhaustive built-in provider list (bundle slimming)
+  // app, db, cloudflare: entry paths; agents: glob; tracing: boolean (CF)
 });
 ```
 
-Full reference: `./reference/docs_guide_project-layout_index.md`
+Output dir `dist/` is set in `vite.config.ts`. No file-based routing: everything HTTP is mounted explicitly in `app.ts`.
+
+Full reference: `./reference/docs_guide_project-layout_index.md`, `./reference/docs_reference_configuration_index.md`
 
 ______________________________________________________________________
 
 ## Agents
 
-### Creating an Agent
+### Statics on the function
 
-File in `src/agents/<name>.ts` with a default export from `defineAgent(...)`:
-
-```ts
-import { defineAgent, type AgentRouteHandler } from '@flue/runtime';
-
-export const description = 'Tells a short joke in response to each message.';
-
-export const route: AgentRouteHandler = async (_c, next) => next();
-
-export default defineAgent(() => ({
-  model: 'anthropic/claude-haiku-4-5',
-  instructions: 'Tell a short joke in response to each message.',
-}));
-```
-
-### Agent Configuration
-
-The object returned by `defineAgent(...)` defines:
-
-| Field           | Type             | Description                    |
-| --------------- | ---------------- | ------------------------------ |
-| `model`         | string           | Model specifier (required)     |
-| `instructions`  | string           | System prompt / instructions   |
-| `tools`         | ToolDefinition[] | Custom tools                   |
-| `skills`        | SkillReference[] | Agent Skills                   |
-| `actions`       | Action[]         | Finite agent-backed operations |
-| `subagents`     | AgentProfile[]   | Named delegation targets       |
-| `sandbox`       | SandboxFactory   | Execution environment          |
-| `cwd`           | string           | Working directory              |
-| `profile`       | AgentProfile     | Reusable behavior profile      |
-| `thinkingLevel` | string           | Reasoning effort level         |
-
-### Agent Profiles
-
-Reusable behavior without creating a public agent:
+The platform reads these without running the function (all optional, plain property assignments):
 
 ```ts
-import { defineAgent, defineAgentProfile } from '@flue/runtime';
-
-const support = defineAgentProfile({
-  model: 'anthropic/claude-haiku-4-5',
-  instructions: 'Answer customer support questions clearly.',
-  tools: supportTools,
-});
-
-export default defineAgent(() => ({
-  profile: support,
-}));
+export function IssueTriage() { /* ... */ }
+IssueTriage.agentName = 'issue-triage';        // durable identity override (kebab-case, AGENT_IDENTITY_PATTERN)
+IssueTriage.initialData = v.object({ issue: v.pipe(v.number(), v.integer()) }); // creation-data schema
+IssueTriage.durability = { maxAttempts: 5, timeoutMs: 7_200_000 }; // retry policy
 ```
 
-Profile fields can be overridden by `defineAgent(...)`.
+### Props and data
 
-### Agent ID
+- `({ id }: AgentProps)` — the root function receives the instance id (`:id` URL segment, `--id`, or `dispatch` id). Constant for the instance's life. Only the root agent gets props.
+- `useInitialData()` reads validated creation data (`flue run --data '<json>'`, dispatch `initialData`, HTTP `initialData` sibling). Recorded once at creation; ignored on continues.
+- `useDelivery()` reads the `DeliveredMessage` currently in front of the model.
 
-Each agent instance identified by `id`. Passed to `defineAgent(({ id }) => ...)` for resource scoping.
+### `DeliveredMessage`
 
-```text
-POST /agents/support-assistant/ticket-8472
-                               └── id ──┘
-```
-
-### Interaction
-
-- **HTTP**: `POST /agents/<name>/<id>` with `{ "message": "...", "images": [...] }`
-- **`dispatch()`**: Asynchronous input from application code
-- **`route` export**: Controls HTTP access (middleware pattern)
-
-### `dispatch()`
+The unified input shape for every delivery surface (dispatch, init handle, direct HTTP body):
 
 ```ts
-import { dispatch } from '@flue/runtime';
-import supportAssistant from './agents/support-assistant.ts';
-
-const receipt = await dispatch(supportAssistant, {
-  id: event.ticketId,
-  input: { type: 'support.comment.created', text: event.text },
-});
+type DeliveredMessage =
+  | { kind: 'user'; body: string; attachments?: DeliveredAttachment[] } // real chat turn; images only attachments
+  | { kind: 'signal'; type: string; body: string; attributes?: Record<string, string>; tagName?: string };
+// bare string = shorthand for { kind: 'user', body }
 ```
 
-Full reference: `./reference/docs_guide_building-agents_index.md`
+`signal` = everything beyond a 1:1 chat (channels, webhooks, schedules): sender identity + metadata in flat string `attributes`; renders as an XML-tagged block in model context. `user` = direct user chat turn.
+
+### Interacting
+
+| Surface    | How                                                                            |
+| ---------- | ------------------------------------------------------------------------------ |
+| CLI        | `npx flue run <path> --message "..." [--id x] [--new] [--data '{}'] [--json]`  |
+| HTTP       | `POST /agents/<name>/<id>` — fire-and-forget, `202` admission; read via `GET`  |
+| In-process | `dispatch(Agent, { id, message })` — fire-and-forget; `init()` handle to await |
+| Standalone | `start({ agents, db })` boots the runtime in your own Node process             |
+
+```ts
+import { init } from '@flue/runtime';
+import { sqlite, start } from '@flue/runtime/node';
+import { Reporter } from '../src/agents/reporter.ts';
+
+await using flue = await start({ agents: [Reporter], db: sqlite('./nightly.db') });
+
+const reporter = init(Reporter, { id: 'nightly-2026-07-16' });
+const receipt = await reporter.dispatch('Produce the nightly report.');
+const reply = await reporter.read(receipt);
+console.log(reply.text);
+```
+
+**Conditional sends** via `uid` (the instance's ETag): omit → create-or-continue; `uid: '<string>'` → continue only that incarnation (`409`/`AgentInstanceNotFoundError` on miss); `uid: null` → create-only (`409`/`AgentInstanceExistsError` on hit, `.uid` carries existing incarnation — perfect for exactly-once CI with `--new`).
+
+Full references: `./reference/docs_guide_building-agents_index.md`, `./reference/docs_reference_agent-api_index.md`
 
 ______________________________________________________________________
 
-## Workflows
+## Agent Hooks
 
-Workflows are **finite, inspectable operations** with a single run, result, and event history.
+All exported from `@flue/runtime`. Call them only during the agent render (body or custom `use*` fn). Throwing when called elsewhere: `[flue] <hook>() was called outside an agent function.`
 
-### Create a Workflow
+| Hook                                               | Purpose                                                                                         |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `useModel(model, { thinkingLevel?, compaction? })` | Declare the LLM. Required, exactly once                                                         |
+| `useSandbox(factory, { cwd? })`                    | Attach the execution environment (opt-in)                                                       |
+| `useTool(tool)`                                    | Mount a model-callable tool                                                                     |
+| `useMcpConnection(def)`                            | Declare a remote MCP server (tools mount as `mcp__<server>__<tool>`)                            |
+| `useSkill(skill)`                                  | Mount a skill into the disclosure catalog                                                       |
+| `useSubagent(def)`                                 | Declare a `task`-tool delegate                                                                  |
+| `useInstruction(text)`                             | Append raw instruction text (low-level escape hatch)                                            |
+| `usePersistentState(name, default?)`               | Durable per-instance state, React-style `[value, setter]`                                       |
+| `useInitialData<T>()`                              | Read instance-creation data                                                                     |
+| `useDelivery()`                                    | Read the message in front of the model                                                          |
+| `useDispatchMessage()`                             | Dispatcher bound to this instance                                                               |
+| `useDataWriter(name, { schema? })`                 | Stream named data parts to clients                                                              |
+| `useAgentStart(cb)`                                | Async callback when work starts on a delivered message (async OK; loads data before model runs) |
+| `useAgentFinish(cb)`                               | Callback at every would-stop point; `ctx.append(signal)` sends model back to work               |
+| `useResponseStart(fn)`                             | Sync observer at response true start; returns metadata merged onto response                     |
+| `useResponseFinish(fn)`                            | Sync observer at response true end; final `response.usage` / `toolCalls`                        |
 
-File in `src/workflows/<name>.ts`:
+### Persisted state (gates capabilities)
 
 ```ts
-import { defineAgent, defineWorkflow } from '@flue/runtime';
-import * as v from 'valibot';
+'use agent';
+import { useModel, usePersistentState, useTool } from '@flue/runtime';
 
-export default defineWorkflow({
-  agent: defineAgent(() => ({ model: 'anthropic/claude-haiku-4-5' })),
-  input: v.object({ text: v.string() }),
-  output: v.object({ summary: v.string() }),
+export function SupportAgent() {
+  useModel('anthropic/claude-haiku-4-5');
+  const [escalated, setEscalated] = usePersistentState('escalated', false);
 
-  async run({ harness, input }) {
-    const session = await harness.session();
-    const response = await session.prompt(input.text);
-    return { summary: response.text };
-  },
+  useTool({
+    name: 'escalate',
+    description: 'Escalate when the customer needs a refund.',
+    async run() {
+      setEscalated(true);
+      return 'Escalated. The refund tool is now available.';
+    },
+  });
+
+  if (escalated) { useTool(refundTool); } // conditional capability unlock
+  return 'Answer customer support questions clearly and accurately.';
+}
+```
+
+- Values are JSON-serializable; setter throws on `undefined`/non-serializable; updater form `set((prev) => ...)` resolves at call time (safe read-modify-write).
+- Writes are silent (never wake the agent); next render reads latest values.
+- Interpolate state into instructions (`return \`Phase: ${phase}.\`\`) for multi-step behavior.
+
+### Event hooks
+
+- `useAgentStart(async ({ harness, append, log, signal }) => {...})` — intake seam; load data, dispatch signals, write state.
+- `useAgentFinish(({ response, append, harness }) => {...})` — enforcement seam: `append({ kind: 'signal', type, body, attributes })` steers the same response; settles only when no appends and no queued input. Max 32 continuations (unconfigurable).
+- `useResponseStart/Finish(() => ({ startedAt: Date.now() }))` — sync, return plain object merged onto response `metadata`.
+
+### Data writers
+
+```ts
+const writeOrderCard = useDataWriter('orderCard', {
+  schema: v.object({ orderId: v.string(), status: v.picklist(['loading', 'loaded']) }),
 });
+writeOrderCard({ orderId: data.orderId, status: 'loaded' }); // in tool run
 ```
 
-### Using an Action
+Arrives on the wire as a `data-orderCard` part; the model never sees it. Names must be declared identically every render.
+
+### Custom hooks
+
+Plain functions prefixed `use` that call other hooks — composition with no registration:
 
 ```ts
-import { defineAgent, defineWorkflow } from '@flue/runtime';
-import { summarize } from '../actions/summarize.ts';
-
-export default defineWorkflow({
-  agent: defineAgent(() => ({ model: 'anthropic/claude-haiku-4-5' })),
-  action: summarize,  // owns input, output, handler
-});
+function useEscalation() {
+  useTool(escalateCase);
+  return 'Escalate to a specialist only after confirming the account and issue.';
+}
 ```
 
-### Invoking
-
-- **CLI**: `npx flue run summarize --input '{"text":"..."}'`
-- **Code**: `invoke(workflow, { input: { ... } })`
-- **HTTP**: With `route` export, at `POST /workflows/<name>`
-
-### HTTP Exposure
-
-Two independent exports:
-
-```ts
-import type { WorkflowRouteHandler, WorkflowRunsHandler } from '@flue/runtime';
-
-export const route: WorkflowRouteHandler = async (c, next) => { /* auth */ await next(); };
-export const runs: WorkflowRunsHandler = async (c, next) => { /* auth */ await next(); };
-```
-
-- `route` — controls invocation at `POST /workflows/<name>`
-- `runs` — controls run inspection at `/runs/<runId>`
-
-Full reference: `./reference/docs_guide_workflows_index.md`
+Full reference: `./reference/docs_guide_agent-hooks_index.md`, `./reference/docs_reference_agent-hooks-api_index.md`
 
 ______________________________________________________________________
 
-## Actions
+## Models & Providers
 
-Actions are reusable logic that orchestrates an agent harness in a deterministic way.
-
-### Define
+### `useModel()`
 
 ```ts
-import { defineAction } from '@flue/runtime';
-import * as v from 'valibot';
-
-export const summarize = defineAction({
-  name: 'summarize_document',
-  description: 'Summarize a document clearly.',
-  input: v.object({ text: v.string() }),
-  output: v.object({ summary: v.string() }),
-
-  async run({ harness, input, log }) {
-    const session = await harness.session();
-    const response = await session.prompt(`Summarize:\n\n${input.text}`);
-    return { summary: response.text };
-  },
+useModel('anthropic/claude-sonnet-4-6', {
+  thinkingLevel: 'high',  // 'off'|'minimal'|'low'|'medium'|'high'|'xhigh' (default 'medium')
+  compaction: { keepRecentTokens: 16000, reserveTokens: 30000, model: 'anthropic/claude-haiku-4-5' },
 });
 ```
 
-### Usage
+- Specifier: `'<provider-id>/<model-id>'` — everything before the first `/` is the provider (`openrouter/moonshotai/kimi-k2.6`, `cloudflare/@cf/...`).
+- Values are **submission-scoped** (computed from state → takes effect next submission). The model can change mid-conversation (escalation pattern).
+- `compaction: false` disables only threshold-triggered compaction. Defaults: reserve model-aware ≤20000, keepRecent 8000.
+- Unresolvable specifier fails fast at submission initialization.
 
-- **In workflows**: Bind via `action: summarize` in `defineWorkflow`
-- **In agents**: Add to `actions: [summarize]` in `defineAgent`
+### Providers
 
-Actions share the model-facing namespace with tools, so every active capability needs a distinct name.
+- Built-in set comes from Pi (`anthropic`, `openai`, `google`, `groq`, `mistral`, `xai`, `deepseek`, `cerebras`, `together`, `fireworks`, `openrouter`, and more). Env vars like `ANTHROPIC_API_KEY`.
+- **`providers: ['anthropic', 'openai']`** in config = exhaustive bundle (real deploy weight savings). `'cloudflare'` = Workers AI binding provider (CF only; error on Node).
+- Custom providers are pi-ai `Provider` objects via `setProvider()`, built with `createProvider(...)` / built-in factories from `@earendil-works/pi-ai` (a direct dependency). `registerProvider`/`registerApiProvider` are gone.
 
-Full reference: `./reference/docs_guide_actions_index.md`
+Full reference: `./reference/docs_guide_models_index.md`, `./reference/docs_reference_provider-api_index.md`
 
 ______________________________________________________________________
 
 ## Tools
 
-Tools let agents retrieve information or perform actions. Use `defineTool(...)`.
-
-### Define
+### `defineTool()`
 
 ```ts
 import { defineTool } from '@flue/runtime';
 import * as v from 'valibot';
 
-export const lookupOrderStatus = defineTool({
-  name: 'lookup_order_status',
-  description: 'Look up fulfillment status for one order ID.',
-  input: v.object({ orderId: v.string() }),
-  output: v.object({ status: v.nullable(v.string()) }),
-  async run({ input, signal }) {
-    const status = await db.getOrderStatus(input.orderId);
-    return { status };
+export const lookupOrder = defineTool({
+  name: 'lookup_order',
+  description: 'Look up one order by id and return its current status.',
+  input: v.object({ orderId: v.string() }),     // optional Valibot object schema
+  output: v.object({ status: v.string(), eta: v.string() }), // optional
+  async run({ data, signal, log, toolCallId }) {
+    const order = await orders.get(data.orderId);
+    return { output: { status: order.status } }; // envelope: { output?, terminate? }
+    // bare string = { output: <string> }; terminate: true ends the turn
   },
 });
 ```
 
-### Tool Security
+- **context**: `{ data, signal, log, toolCallId }` — `data` = schema-parsed args; `signal` = AbortSignal (abandoned on abort); `log.info/warn/error` stream as conversation events (model never sees them).
+- Mount with `useTool(lookupOrder)` or inline. Validation failure → tool error the model sees (it can retry). A throw inside `run` never fails the submission.
+- Duplicate/framework-reserved names (`task`, `activate_skill`, `read_skill_resource`) throw at assembly.
 
-Model-selected parameters are NOT an authorization boundary. Use the agent `id` to scope access:
+### Harness tools (`harness: true`)
+
+Reach the agent's own runtime in `run({ harness })`:
 
 ```ts
-export default defineAgent(({ id: customerId }) => ({
-  tools: [defineTool({
-    name: 'lookup_customer_order',
-    async run({ input }) {
-      const status = await orders.getStatus(customerId, input.orderId); // scoped
-      return status;
-    },
-  })],
-}));
+async run({ harness, data }) {
+  await harness.sandbox.writeFile('contract.md', data.contract);
+  const { data: report } = await harness.prompt('Review contract.md for risk.', { result: Report });
+  return { output: report };
+}
 ```
 
-### MCP Servers
+- `harness.sandbox` — live `SessionEnv` (`exec`, `readFile`, `writeFile`, `stat`, `readdir`, `mkdir`, `rm`, `cwd`, `resolvePath`); never recorded in the conversation; throws when no sandbox declared.
+- `harness.prompt(text, { result?, tools?, model?, thinkingLevel?, signal?, images? })` — scratch-conversation model op; `result` (Valibot schema) requires structured output via a framework `finish` tool. Repeated calls continue one conversation.
+- `harness.compact()` — compact the scratch conversation. Count against the delegation-depth cap.
+
+### Durable tools (`durable: true`)
+
+For work that must complete across crashes. `run` receives `step`:
 
 ```ts
-import { connectMcpServer } from '@flue/runtime';
+const tenant = await step.do('create-tenant', () => billing.createTenant(data.customerId));
+```
 
-const inventory = await connectMcpServer('inventory', {
-  url: process.env.INVENTORY_MCP_URL!,
-  headers: { Authorization: `Bearer ${process.env.INVENTORY_MCP_TOKEN}` },
-});
+- `step.do(name, fn)` runs `fn` once per name per call; completed values are durably recorded and replayed on recovery (exactly-once-recorded, at-least-once-executed — keep steps idempotent).
+- Interrupted ordinary tools settle with an unknown-outcome error the model sees; durable tools re-execute.
+- Flags compose: `durable: true, harness: true` gets both.
 
-// Tools become available as inventory.tools
-// MCP tool names get prefixed: mcp__inventory__lookup_item
+### Conditional tools
+
+Wrap `useTool` in a condition (e.g. on `usePersistentState`) — an unmounted tool can't be called. Set changes are narrated via `resources` signals without invalidating the prompt cache.
+
+### Tool security
+
+Model-selected args are not an authorization boundary. Carry the trusted identifier in the delivered signal's `attributes` and read with `useDelivery()`:
+
+```ts
+const delivery = useDelivery();
+const customerId = delivery.kind === 'signal' ? delivery.attributes?.customerId : undefined;
 ```
 
 Full reference: `./reference/docs_guide_tools_index.md`
 
 ______________________________________________________________________
 
+## MCP
+
+```ts
+'use agent';
+import { useMcpConnection, useModel } from '@flue/runtime';
+
+export function ProjectAssistant() {
+  useModel('anthropic/claude-sonnet-4-6');
+  useMcpConnection({
+    name: 'linear',
+    url: 'https://mcp.linear.app/mcp',
+    auth: process.env.LINEAR_API_KEY,          // static bearer, or () => token for rotating/ per-user
+    tools: ['create_issue', 'search_issues'],  // allowlist (omit = all)
+  });
+  return 'Manage Linear issues and projects for the team.';
+}
+```
+
+- Tools mount as `mcp__<server>__<tool>`; connections are runtime-owned and reused for the instance's lifetime.
+- Transport: `'streamable-http'` (default) or `'sse'`. `headers` set-wins over `requestInit`.
+- `optional: true` — a failed server mounts zero tools and tells the model, instead of failing the submission.
+- `defineMcpConnection(def)` — validating/freezing helper for exportable units (spread for per-mount overrides). `createMcpConnection(def)` — async imperative factory (Node only; CF Workers prohibit top-level network I/O — use the hook there).
+- OAuth/token storage is application-owned; Flue never stores tokens.
+
+Full reference: `./reference/docs_guide_mcp_index.md`
+
+______________________________________________________________________
+
 ## Skills
 
-Flue supports [Agent Skills](https://agentskills.io/specification): reusable instructions + supporting resources.
+Open [Agent Skills](https://agentskills.io) format — reusable instructions, progressively disclosed (one catalog line per skill; body loads on `activate_skill`).
 
-### Adding a Skill
+### Author & mount
 
-Directory structure:
-
+```text
+src/skills/refunds/
+├─ SKILL.md        # frontmatter + instructions
+└─ POLICY.md       # supporting file, loaded only when read
 ```
-src/skills/review/
-├── SKILL.md
-└── references/
-    └── checklist.md
-```
-
-### Import
 
 ```ts
-import { defineAgent } from '@flue/runtime';
-import review from '../skills/review/SKILL.md' with { type: 'skill' };
+'use agent';
+import { useModel, useSkill } from '@flue/runtime';
+import refunds from '../skills/refunds/SKILL.md';  // static import only!
 
-export default defineAgent(() => ({
-  model: 'anthropic/claude-sonnet-4-6',
-  skills: [review],
-}));
+export function SupportAgent() {
+  useModel('anthropic/claude-haiku-4-5');
+  useSkill(refunds);
+  return 'Answer customer support questions clearly and accurately.';
+}
 ```
 
-### Workspace Discovery
+- Any path resolving to a `SKILL.md` packages the whole directory; any other `.md` import yields plain text (hand to `useInstruction` or `defineSkill`). No import attributes (`with { type: 'skill' }` gone).
+- Import specifiers are resolved by Vite: local dirs, npm and workspace packages.
 
-Skills under `<cwd>/.agents/skills/` are auto-discovered without imports.
+### Frontmatter
 
-### Invoking
+`name` (required: lowercase letters/numbers/single hyphens, ≤64 chars, matches dir name), `description` (required, ≤1024 chars — the routing decision), plus optional `license`, `compatibility`, `metadata`, `allowed-tools` (accepted, not enforced). Unknown fields ignored.
 
-In workflows, use `session.skill(name, { args, result })`:
+### `defineSkill()`
+
+Inline, code-defined skills:
 
 ```ts
-const response = await (await harness.session()).skill('review', {
-  args: { change: input.change },
-  result: v.object({ approved: v.boolean(), summary: v.string() }),
+import { defineSkill } from '@flue/runtime';
+
+export const escalation = defineSkill({
+  name: 'escalation',
+  description: 'Escalate an unresolved case to a human specialist. Use when the customer asks for a human.',
+  instructions: 'Summarize the case, tag it, and hand off with the `escalate_case` tool.',
+  files: { 'POLICY.md': checklistText }, // optional supporting resources
 });
 ```
 
-### SKILL.md Frontmatter
-
-| Field           | Required | Notes                         |
-| --------------- | -------- | ----------------------------- |
-| `name`          | Yes      | lowercase, hyphens, ≤64 chars |
-| `description`   | Yes      | ≤1024 chars                   |
-| `license`       | No       | Informational                 |
-| `compatibility` | No       | ≤500 chars                    |
-| `metadata`      | No       | string-to-string map          |
-| `allowed-tools` | No       | Accepted, not enforced        |
+- Packaging happens lazily; `instructions` is required (a skill is its content).
+- **Workspace skills**: `SKILL.md` dirs under `<cwd>/.agents/skills/` of a sandbox are auto-discovered; the model activates by name.
+- Packaging refuses secrets (`.env`, private keys, symlinks — hard errors) and warns on >1MB files.
+- Skills are conditional-able like tools; catalog changes narrated via `resources` signals.
 
 Full reference: `./reference/docs_guide_skills_index.md`
 
@@ -459,41 +511,27 @@ ______________________________________________________________________
 
 ## Subagents
 
-Subagents let an agent delegate focused work to a named specialist.
-
-### Define
+Named delegation targets for the built-in `task` tool. Only declared subagents resolve.
 
 ```ts
-import { defineAgent, defineAgentProfile } from '@flue/runtime';
+import { defineSubagent } from '@flue/runtime';
 
-const issueClassifier = defineAgentProfile({
+export const issueClassifier = defineSubagent({
   name: 'issue_classifier',
   description: 'Classifies support issues for routing.',
-  instructions: 'Return the likely product area and urgency.',
+  agent: IssueClassifier,          // a plain agent function
+  model: 'anthropic/claude-haiku-4-5', // optional; inherits parent when omitted
 });
 
-export default defineAgent(() => ({
-  model: 'anthropic/claude-sonnet-4-6',
-  subagents: [issueClassifier],
-}));
+// Mount:
+useSubagent(issueClassifier);
+// Or with override: useSubagent({ ...issueClassifier, model: 'anthropic/claude-opus-4-6' });
 ```
 
-### Inheritance Rules
-
-| Field                                          | Behavior                                 |
-| ---------------------------------------------- | ---------------------------------------- |
-| `instructions`, `tools`, `skills`, `subagents` | Profile-owned. Omitted = none.           |
-| `model`, `thinkingLevel`                       | Inherits from parent as default          |
-| `durability`                                   | Rejected — delegation runs inside parent |
-
-### Programmatic Task
-
-```ts
-const response = await (await harness.session()).task(input.change, {
-  agent: 'reviewer',
-  result: Review,
-});
-```
+- The delegate's function is rendered fresh per task, in its own frame. It gets the shared environment (sandbox, filesystem tools), none of the parent's instructions/tools/skills.
+- `GeneralSubagent` — exported blank delegate (reserved name `flue-general`); gives a fresh context with just the shared environment (opt-in).
+- Children have no durable identity/state/persistent instance — a real registered agent + `dispatch()` is the pattern for addressable long-lived conversations.
+- Use when: context isolation, parallel work, different model/instructions per phase. Interrupted tasks resume from their own durable transcripts on recovery.
 
 Full reference: `./reference/docs_guide_subagents_index.md`
 
@@ -501,135 +539,90 @@ ______________________________________________________________________
 
 ## Sandboxes
 
-Sandboxes give agents a workspace to read, write, and run commands.
+**Opt-in.** No `useSandbox()` = no file/shell tools, no workspace context, `harness.sandbox` throws. Assets: file+shell tools (`read`, `write`, `edit`, `bash`, `grep`, `glob`), workspace context (cwd listing, `AGENTS.md`), workspace skills (`.agents/skills/`), subagent sharing.
 
-### Virtual Sandbox (Default)
+### Virtual (`bash()` + just-bash)
 
-- Lightweight, in-memory workspace via [just-bash](https://justbash.dev/)
-- No `sandbox` field needed
-- Data lost after execution
-- Not a network isolation boundary
-
-### Local Sandbox (Node.js only)
+In-memory filesystem + emulated bash (no real processes). Isolated from host; network opt-in.
 
 ```ts
-import { defineAgent } from '@flue/runtime';
-import { local } from '@flue/runtime/node';
+import { bash, useModel, useSandbox } from '@flue/runtime';
+import { Bash, InMemoryFs } from 'just-bash';   // add just-bash to dependencies
 
-export default defineAgent(() => ({
-  model: 'anthropic/claude-sonnet-4-6',
-  sandbox: local(),
-  cwd: '/srv/checkouts/catalog-service',
-}));
+export function ScratchWorker() {
+  useModel('anthropic/claude-haiku-4-5');
+  useSandbox(bash(() => new Bash({
+    fs: new InMemoryFs({ '/data/catalog.csv': exportCatalogCsv() }),
+    network: { allowedUrlPrefixes: ['https://api.example.com/'] },
+  })));
+  return 'Answer questions about the product catalog in /data/catalog.csv.';
+}
 ```
 
-- Direct host filesystem and shell access
-- Environment variables deliberately limited
-- Use only in trusted environments
+Ephemeral — rebuilt per initialization; keep durable knowledge in `usePersistentState`.
 
-### Remote Sandboxes
+### Local (`local()`, Node only)
 
-For isolation, Linux toolchain, or provider-managed workspaces. Integrations: Daytona, E2B, Modal, Cloudflare Sandbox, Vercel Sandbox, etc.
+Real host filesystem + shell via `child_process`. Trusted environments only (dev tools, CI, coding agents).
+
+```ts
+import { local } from '@flue/runtime/node';
+useSandbox(local({ cwd: '/srv/checkouts/catalog-service', env: { GH_TOKEN: process.env.GH_TOKEN } }));
+```
+
+- Shell gets only an allowlist (PATH, HOME, USER, LANG, TERM, TMPDIR…) — **never API keys**. `env` is explicit per-variable opt-in; `env: { ...process.env }` leaks everything — trusted envs only.
+- Snapshot taken once at sandbox construction.
+
+### Remote & rules
+
+- Remote adapters: `flue add sandbox e2b` (Daytona, E2B, Modal, Cloudflare Sandbox/Shell, Vercel, …).
+- At most one `useSandbox` per render; lazy factory (`createSessionEnv()` runs once at init); `cwd` resolves once at init; may be conditional (presence flips swap env at turn boundary, narrated as an `environment` signal).
+- Subagent renders throw — delegates share the parent environment.
 
 Full reference: `./reference/docs_guide_sandboxes_index.md`
 
 ______________________________________________________________________
 
-## Models & Providers
-
-### Model Specifier
-
-Format: `<provider-id>/<model-id>`
-
-| Specifier                             | Provider   | Model                    |
-| ------------------------------------- | ---------- | ------------------------ |
-| `anthropic/claude-sonnet-4-6`         | anthropic  | claude-sonnet-4-6        |
-| `openai/gpt-5.5`                      | openai     | gpt-5.5                  |
-| `cloudflare/@cf/moonshotai/kimi-k2.6` | cloudflare | @cf/moonshotai/kimi-k2.6 |
-
-### Reasoning Effort (`thinkingLevel`)
-
-| Value       | Intent                  |
-| ----------- | ----------------------- |
-| `'off'`     | No additional reasoning |
-| `'minimal'` | Smallest effort         |
-| `'low'`     | Lower cost/latency      |
-| `'medium'`  | Default balance         |
-| `'high'`    | More careful reasoning  |
-| `'xhigh'`   | Highest exposed tier    |
-
-### Built-in Providers
-
-| Provider   | Env Variable         |
-| ---------- | -------------------- |
-| anthropic  | `ANTHROPIC_API_KEY`  |
-| openai     | `OPENAI_API_KEY`     |
-| openrouter | `OPENROUTER_API_KEY` |
-
-### Custom/Override Providers
-
-```ts
-import { registerProvider } from '@flue/runtime';
-
-// Override existing provider (e.g., AI gateway)
-registerProvider('anthropic', {
-  baseUrl: process.env.ANTHROPIC_GATEWAY_URL,
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-// Register custom provider
-registerProvider('ollama', {
-  api: 'openai-completions',
-  baseUrl: 'http://localhost:11434/v1',
-});
-```
-
-Full reference: `./reference/docs_guide_models_index.md`
-
-______________________________________________________________________
-
 ## Routing
 
-`src/app.ts` is an optional Hono application entrypoint for custom HTTP routing.
+**No automatic mounting.** Every route is explicit in `app.ts` (a Hono app or any fetch-compatible object).
 
-### Basic Usage
-
-```ts
-import { flue } from '@flue/runtime/routing';
-import { Hono, type MiddlewareHandler } from 'hono';
-import { authenticate } from './auth.ts';
-
-const requireUser: MiddlewareHandler = async (c, next) => {
-  const user = await authenticate(c.req.raw);
-  if (!user) return c.json({ error: 'Unauthorized' }, 401);
-  await next();
-};
-
-const app = new Hono();
-
-app.get('/health', (c) => c.json({ ok: true }));
-app.use('/agents/*', requireUser);
-app.use('/workflows/*', requireUser);
-app.route('/', flue());
-
-export default app;
-```
-
-### Mount Prefix
+### Mount an agent
 
 ```ts
-app.route('/api', flue());  // /api/agents/..., /api/workflows/...
+import { createAgentRouter } from '@flue/runtime/routing'; // pure factory, no side effects
+app.route('/agents/support', createAgentRouter(Support));
 ```
 
-### Workflow Run Authorization
+- Mount path is pure routing — conversations key on the durable identity, never the URL. One agent can be mounted at two paths.
+- `'use agent'` scan = registration; dispatch-only agents need no mount.
+- Routes relative to mount: `POST /:id` (202 admission), `GET|HEAD /:id` (snapshot/updates/stream), `POST /:id/abort`, `GET /:id/attachments/:attachmentId`.
+
+### Conversation URL protocol
+
+- POST body is the `DeliveredMessage` (+ optional `initialData`/`uid` siblings). **Fire-and-forget**: `202` with `{ streamUrl, offset, submissionId }` — there is no wait mode; read the reply from the conversation.
+- `GET ?view=history` → snapshot; `?view=updates&offset=...` → changes (long-poll or SSE). Wire protocol: `./reference/docs_reference_streaming-protocol_index.md`.
+
+### Protect your agents
+
+No built-in auth. Layer middleware in `app.ts` — both **authentication** (who) and **authorization** (may access *this conversation id*):
 
 ```ts
-export const runs: WorkflowRunsHandler = async (c, next) => {
-  const token = c.req.header('authorization');
-  if (!(await verifyRunToken(token))) return c.json({ error: 'Not found' }, 404);
-  await next();
-};
+app.use('/agents/support/*', async (c, next) => {
+  const user = await verifySession(c.req.raw);
+  if (!user) return c.json({ error: 'unauthorized' }, 401);
+  const [conversationId] = c.req.path.slice('/agents/support/'.length).split('/');
+  if (!(await canAccessTicket(user, conversationId))) return c.json({ error: 'forbidden' }, 403);
+  return next();
+});
+app.route('/agents/support', createAgentRouter(Support));
 ```
+
+CORS is an application concern; expose `Stream-Next-Offset`, `Stream-Up-To-Date`, `Location` headers for SDK reconnects. `vite dev`/`vite preview` apply permissive dev defaults.
+
+### Channels
+
+`app.route('/channels/slack', slack.route())` — channel routers serve verified provider ingress (no extra auth middleware; provider-signature verification is the auth).
 
 Full reference: `./reference/docs_guide_routing_index.md`
 
@@ -637,83 +630,97 @@ ______________________________________________________________________
 
 ## Database
 
-Flue stores canonical conversation streams, attachments, submissions, and workflow-run records.
+Flue stores its own durable state: canonical conversation streams, accepted submissions (+ claims/leases), persisted state, attachment payloads. Not stored: sandbox files, provider credentials, business data.
 
-### Node.js
+### `db.ts` (Node)
 
 ```ts
 import { sqlite } from '@flue/runtime/node';
-
-export default sqlite('./data/flue.db');  // file-backed
-// export default sqlite();              // in-memory
+export default sqlite('./data/flue.db');  // file-backed, WAL mode; sqlite() / ':memory:' = in-memory
 ```
 
-Postgres adapter: `@flue/postgres`
+- No `db.ts` → in-memory SQLite (lost on restart). Dev defaults: `vite dev` → `node_modules/.cache/flue/dev.db`; `flue run` → `node_modules/.cache/flue/run.db` (persistent across invocations).
+- `start({ db })` scripts pass adapters directly; they don't read `db.ts`.
+
+### Ecosystem adapters (bring-your-own-driver)
+
+| Backend                          | Package                                     |
+| -------------------------------- | ------------------------------------------- |
+| Postgres / Supabase              | `@flue/postgres`                            |
+| libSQL / Turso                   | `@flue/libsql`                              |
+| MySQL / MongoDB / Redis / Valkey | `@flue/mysql` `@flue/mongodb` `@flue/redis` |
 
 ```ts
 import { postgres } from '@flue/postgres';
-export default postgres(process.env.DATABASE_URL!);
+import { Pool } from 'pg';
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export default postgres({
+  query: async (text, params) => (await pool.query(text, params)).rows,
+  transaction: async (fn) => { /* BEGIN/COMMIT/ROLLBACK around fn */ },
+  close: () => pool.end(),
+});
 ```
+
+Blueprints: `flue add database postgres`. `migrate()` provisions idempotently at boot; format versions are stamped (incompatible DBs refuse to start). Shared DB ≠ active-active: each conversation needs one live Node owner.
 
 ### Cloudflare
 
-Durable Objects use SQLite automatically. No `db.ts` — Cloudflare builds reject it.
+Nothing to configure — Durable Object SQLite per agent; a `db.ts` is a build error.
 
-### What's Stored
+### Custom adapters
 
-| Stored                     | Not Stored            |
-| -------------------------- | --------------------- |
-| Agent conversation streams | Sandbox files         |
-| Attachments                | External side effects |
-| Submissions                | Business data         |
-| Workflow runs & events     | Provider credentials  |
+`PersistenceAdapter` contract in `@flue/runtime/adapter` (`connect()` → submissionStore, conversationStreamStore, attachmentStore; optional `migrate()`/`close()`); run `@flue/runtime/test-utils` contract suites.
 
 Full reference: `./reference/docs_guide_database_index.md`
 
 ______________________________________________________________________
 
+## Durability
+
+**The accepted-work contract**: every admitted submission reaches exactly one durable terminal outcome (`completed` | `failed` | `aborted`) through crashes, restarts, and redeploys. Outcomes land as `submission_settled` records in the conversation stream.
+
+- Submissions queue per conversation in admission order; busy instances join the live response at turn boundaries; queued messages are never lost.
+- **Recovery** classifies from durable evidence: never-persisted input → requeue; completed response → settle; partial text → continue from durable partial; unresolved tool calls → repair the batch (preserving recorded results, marking unknown outcomes); abort intent → settle aborted.
+- **At-least-once execution, exactly-once recording.** Committed work never re-runs; interrupted work re-runs. Guard external side effects (emails, pages) with persistent state.
+- **Retry budget**: `IssueTriage.durability = { maxAttempts: 10, timeoutMs: 3_600_000 }` (defaults). Timeout is total wall-clock from first attempt.
+- **Durable tools** (`durable: true` + `step.do`) re-execute with recorded steps replayed. **Delegated tasks** resume from their own transcripts under the parent's budget.
+- **Abort**: `POST /:id/abort` / SDK `abort()` / `handle.abort()` records durable intent; settles distinct `aborted` outcome.
+- Per-target: Cloudflare = Durable Object wake/alarm (platform observability sees one invocation per response); Node = one live owner per conversation + lease-scan recovery.
+
+Full reference: `./reference/docs_guide_durability_index.md`
+
+______________________________________________________________________
+
 ## Channels
 
-Channels bring provider HTTP events (Slack, GitHub, Stripe, etc.) into Flue.
-
-### Adding a Channel
+Verified provider ingress → route provider-native payloads into agent conversations via `dispatch()`. Inbound-only; outbound uses the provider's own SDK.
 
 ```bash
-flue add channel slack --print | codex
+npx flue add channel slack   # blueprint: installs @flue/slack + @slack/web-api, wires src/channels/slack.ts
 ```
 
-### Channel Module
-
 ```ts
-import { createSlackChannel } from '@flue/slack';
-import { WebClient } from '@slack/web-api';
-
-export const client = new WebClient(process.env.SLACK_BOT_TOKEN);
-
+// src/channels/slack.ts
 export const channel = createSlackChannel({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
   async events({ payload }) {
-    if (payload.type !== 'event_callback') return;
-    // Handle event
+    if (payload.type !== 'event_callback' || payload.event.type !== 'app_mention') return;
+    await dispatch(Assistant, {
+      id: channel.instanceId({ teamId: payload.team_id, channelId: payload.event.channel, threadTs: payload.event.thread_ts ?? payload.event.ts }),
+      idempotencyKey: payload.event_id,   // provider redelivery convergence — at most one answer
+      initialData: { channelId: thread.channelId, threadTs: thread.threadTs },
+      message: { kind: 'signal', type: 'slack.app_mention', body: payload.event.text, attributes: { eventId: payload.event_id } },
+    });
   },
 });
 ```
 
-### Ownership Boundary
+Patterns:
 
-| Concern                             | Owner           |
-| ----------------------------------- | --------------- |
-| Request verification                | Channel package |
-| Provider SDK & outbound credentials | Application     |
-| Agent tools & auth policy           | Application     |
-
-### File-Based Routing
-
-```
-src/channels/github.ts -> /channels/github/webhook
-src/channels/slack.ts  -> /channels/slack/events
-                           /channels/slack/interactions
-```
+- One agent conversation per provider destination (`instanceId()` derives canonical ids; `parseInstanceId` is an escape hatch — prefer `initialData`).
+- Channels are stateless; pass the provider's redelivery-stable id as `idempotencyKey` (reuse w/ different payload → 409 `submission_conflict`).
+- Acknowledge quickly (dispatch resolves at admission); don't await agent output in handlers.
+- Providers: Discord, Facebook/Messenger, GitHub, Google Chat, Intercom, Linear, MS Teams, Notion, Resend, Salesforce, Shopify, Slack, Stripe, Telegram, Twilio, WhatsApp, Zendesk — each ships as a blueprint (`flue add channel <name>`).
 
 Full reference: `./reference/docs_guide_channels_index.md`
 
@@ -721,86 +728,106 @@ ______________________________________________________________________
 
 ## Schedules
 
-Schedules invoke workflows or dispatch agent input on a timer.
+Flue has no scheduler; each target pairs its cron mechanism with `dispatch()`.
 
-### Cloudflare Cron
+### Node (in-process cron in `app.ts`)
+
+```ts
+import { dispatch } from '@flue/runtime';
+import { Cron } from 'croner';   // example library
+
+new Cron('0 9 * * *', { timezone: 'America/New_York', protect: true,
+  catch: (e) => console.error('Scheduled dispatch failed', e) },
+  async () => {
+    await dispatch(Reporter, {
+      id: 'daily-summary',
+      message: { kind: 'signal', type: 'schedule', body: 'Review recent activity.', attributes: { scheduledAt: new Date().toISOString() } },
+    });
+  });
+```
+
+### Cloudflare (Cron Trigger → `cloudflare.ts`)
 
 ```jsonc
 // wrangler.jsonc
-{ "triggers": { "crons": ["0 9 * * *"] } }
+{ "triggers": { "crons": ["0 9 * * *"] } }   // UTC only
 ```
 
 ```ts
 // src/cloudflare.ts
-import { invoke } from '@flue/runtime';
-import dailySummary from './workflows/daily-summary.ts';
+import { dispatch } from '@flue/runtime';
 
 export default {
-  async scheduled(controller: ScheduledController) {
-    await invoke(dailySummary, { input: { prompt: '...' } });
+  async scheduled(controller) {
+    await dispatch(Reporter, { id: 'daily-summary', message: { kind: 'signal', type: 'schedule', body: '...', attributes: { cron: controller.cron } } });
   },
 };
 ```
 
-### Node.js (using Croner)
-
-```ts
-import { Cron } from 'croner';
-
-new Cron('0 9 * * *', { protect: true }, async () => {
-  await invoke(dailySummary, { input: { prompt: '...' } });
-});
-```
-
-### Dispatch to Agent
-
-```ts
-import { dispatch } from '@flue/runtime';
-import dailySummary from './agents/daily-summary.ts';
-
-await dispatch(dailySummary, {
-  id: 'daily-summary',
-  input: { type: 'schedule', scheduledAt: new Date().toISOString() },
-});
-```
+- Scheduled agents need no HTTP mount (dispatch-only). A fire delivers as `kind: 'signal'`.
+- In-DO timers: Agents SDK `schedule()`/`scheduleEvery()` via the `cloudflare.ts` `extend()` extension API.
 
 Full reference: `./reference/docs_guide_schedules_index.md`
 
 ______________________________________________________________________
 
-## Evals
+## Workflows
 
-Use [vitest-evals](https://vitest-evals.sentry.dev/docs) for repeatable agent evaluation.
+In v2, a "workflow" is **any program that drives an agent** — there is no framework workflow abstraction (`defineWorkflow`/`invoke`/run stores were removed). Pick by where the code runs:
 
-### Setup
+| Approach                                                          | Use when                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------- |
+| `npx flue run <path> -m "..."`                                    | CI / shell / terminal one-shots                         |
+| `start()` + `init()` JS API                                       | Node scripts, cron jobs, tests                          |
+| `@flue/sdk` over HTTP                                             | talking to a hosted agent                               |
+| External durable engine (Cloudflare Workflows, Inngest, Temporal) | multi-step orchestration that must survive interruption |
 
-```bash
-flue add tooling vitest-evals
-```
-
-### Write an Eval
+**Durable workflow pattern** — checkpoint the dispatch receipt in one step, read the settled reply in another (a completed dispatch step never re-sends; a crashed read step re-attaches):
 
 ```ts
-import { describeEval, toolCalls } from 'vitest-evals';
-import { createFlueAgentHarness } from './harness.ts';
-
-const harness = createFlueAgentHarness({ agentName: 'service-status' });
-
-describeEval('Service status agent', { harness }, (it) => {
-  it('checks live status before answering', async ({ run }) => {
-    const result = await run('Is checkout operational?');
-    expect(result.output).toContain('operational');
-    expect(toolCalls(result).map(c => c.name)).toContain('get_service_status');
-  });
+// Cloudflare Workflows / Inngest both follow this shape
+const receipt = await step.do('dispatch review', () => agent.dispatch('Review the findings.'));
+const review = await step.do('read review', async () => {
+  const reply = await agent.read(receipt);
+  return { text: reply.text, data: reply.data };
 });
 ```
 
-### Run
+The one crash window is inside the dispatch step: an unconditional re-send duplicates but coalesces onto the same reply; `uid: null` (create-only) rejects with `AgentInstanceExistsError` — your signal to fail the run.
 
-```bash
-pnpm exec flue dev    # terminal 1
-pnpm run evals        # terminal 2
+Full reference: `./reference/docs_guide_workflows_index.md`
+
+______________________________________________________________________
+
+## Evals
+
+Flue has no eval framework: an eval is a Vitest test that drives the agent through public surfaces and asserts behavior. Nondeterministic → assert the behavioral contract (tool calls, key facts, data shape), not exact strings.
+
+```ts
+// vitest.evals.config.ts: include ['src/evals/**/*.eval.ts'], testTimeout 60_000
+import { init } from '@flue/runtime';
+import { start } from '@flue/runtime/node';
+import { afterAll, expect, it } from 'vitest';
+import { ServiceStatus } from '../agents/service-status.ts';
+
+const flue = await start({ agents: [ServiceStatus] });
+afterAll(() => flue.stop());
+
+it('checks live status before answering', async () => {
+  const toolsCalled: string[] = [];
+  const agent = init(ServiceStatus); // no id = fresh conversation per case
+  const receipt = await agent.dispatch('Is checkout operational?');
+  const reply = await agent.read(receipt, {
+    onEvent: (chunk) => { if (chunk.type === 'tool-input') toolsCalled.push(chunk.toolName); },
+  });
+  expect(reply.text).toContain('operational');
+  expect(toolsCalled).toContain('get_service_status');
+});
 ```
+
+- One `start()` per test file (one runtime per process); stop it in `afterAll`.
+- Agents using build-resolved imports (`SKILL.md` imports) need the Flue build → evaluate over HTTP instead (`createFlueClient`).
+- `vitest-evals` tooling layers harnesses/judges/CI reporting. Script: `"evals": "vitest run --config vitest.evals.config.ts"`.
 
 Full reference: `./reference/docs_guide_evals_index.md`
 
@@ -808,94 +835,65 @@ ______________________________________________________________________
 
 ## Observability
 
-### Inspect Workflow Runs
+Two distinct surfaces:
 
-Use `log.info/warn/error` in Actions:
-
-```ts
-async run({ harness, log, input }) {
-  log.info('Summarization requested', { characters: input.text.length });
-  // ...
-  log.info('Completed', { tokens: response.usage.totalTokens });
-}
-```
-
-### Observe Application Activity
+1. **Conversation stream** — product surface: one conversation's durable render-ready messages/data parts/settlements (`@flue/sdk` `observe()`/`history()`, `GET /agents/:name/:id`).
+1. **Runtime event stream** — operational surface: live activity across all agents in-process via `observe()` from `@flue/runtime` (typed `FlueEvent`s, `v: 3`).
 
 ```ts
 import { observe } from '@flue/runtime';
 
 observe((event) => {
-  if (event.type === 'run_end' && event.isError) {
-    console.error('Workflow failed', event.runId, event.error);
-  }
-  if (event.type === 'operation' && event.durationMs > 5000) {
-    console.warn('Slow operation', event.operationKind, event.durationMs);
+  if (event.type === 'submission_settled' && event.outcome === 'failed') {
+    console.error(`[${event.agentName}] ${event.submissionId} failed:`, event.error?.message);
   }
 });
 ```
 
-### Providers
+- Event families: `agent_start/end/idle`, `submission_settled` (the reliable terminal signal — alert on it), `operation_start/operation`, `turn_start/turn_request/turn/turn_messages`, `message_*`/`text_delta`/`thinking_*`, `tool_start/tool`, `task_start/task`, `compaction_start/compaction`, `log`.
+- Token usage on `turn` events: `response.usage` = `{ input, output, cacheRead, cacheWrite, totalTokens, cost }`.
+- **Subscriber rules**: stay cheap (sync emission path), read-only, contained failures.
+- **Logging in tools**: `log.info/warn/error(message, attributes)` — streams into the conversation as `log` events; model never sees them.
+- Exporters: Sentry, Braintrust, OpenTelemetry (via `setInstrumentation`-family APIs and the ecosystem tooling pages). Cloudflare: auto `createCloudflareTracing()` (Workers Traces), one platform invocation per response.
 
-| Provider      | Use When                                  |
-| ------------- | ----------------------------------------- |
-| OpenTelemetry | Vendor-neutral traces                     |
-| Braintrust    | Content-bearing traces + costs            |
-| Sentry        | Actionable failures without model content |
-
-Full reference: `./reference/docs_guide_observability_index.md`
+Full reference: `./reference/docs_guide_observability_index.md`, `./reference/docs_reference_events_index.md`
 
 ______________________________________________________________________
 
 ## React Frontend
 
-`@flue/react` turns durable event streams into React state.
-
-### Setup
-
-```tsx
-import { FlueProvider } from '@flue/react';
-import { createFlueClient } from '@flue/sdk';
-
-const client = createFlueClient({ baseUrl: '/api' });
-
-createRoot(document.getElementById('root')!).render(
-  <FlueProvider client={client}>
-    <App />
-  </FlueProvider>,
-);
-```
-
-### Agent Chat
+`@flue/react` turns conversation streams into live React state. One conversation per hook by URL; no provider required.
 
 ```tsx
 import { useFlueAgent } from '@flue/react';
+import { useState } from 'react';
 
 function Chat({ conversationId }: { conversationId: string }) {
-  const agent = useFlueAgent({ name: 'support-assistant', id: conversationId });
+  const [input, setInput] = useState('');
+  const agent = useFlueAgent({ url: `/api/agents/support-assistant/${conversationId}` });
 
   return (
-    <div>
-      {agent.messages.map(msg => (
-        <article key={msg.id}>
-          <strong>{msg.role}</strong>
-          {msg.parts.filter(p => p.type === 'text').map(p => <p>{p.text}</p>)}
+    <>
+      {agent.messages.map((message) => (
+        <article key={message.id}>
+          <strong>{message.role}</strong>
+          {message.parts.map((part) =>
+            part.type === 'text' ? <p key={part.text}>{part.text}</p> : null)}
         </article>
       ))}
-      <form onSubmit={e => { e.preventDefault(); agent.sendMessage(input); }}>
-        <input value={input} onChange={e => setInput(e.target.value)} />
+      <form onSubmit={(e) => { e.preventDefault(); agent.sendMessage(input); setInput(''); }}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} />
       </form>
-    </div>
+    </>
   );
 }
 ```
 
-### Workflow Observer
-
-```tsx
-const run = useFlueWorkflow({ runId });
-// run.status, run.logs, run.result, run.error
-```
+- `sendMessage()` resolves at admission (optimistic message reconciled in place). `status`, `historyReady`, `refresh()` (re-check for out-of-band creation) available.
+- Message parts: `text`, `reasoning`, `dynamic-tool` (validated tool output on `output`), `file` (durable URLs / optimistic `data:` previews), custom `data-<name>` parts from `useDataWriter`.
+- Live updates default SSE (fall back to long-poll; `live: 'long-poll'` opts in). Flue's own types — not AI SDK types.
+- Custom auth: pass a memoized `createFlueClient({ url, token })` as `useFlueAgent({ client })` — share one client with programmatic `observe()`/`wait()`/`read()`.
+- SSR-safe: dormant during server render; relative `url` resolves on the browser origin after hydration.
 
 Full reference: `./reference/docs_guide_react_index.md`
 
@@ -903,54 +901,55 @@ ______________________________________________________________________
 
 ## CLI Reference
 
-| Command                           | Description                             |
-| --------------------------------- | --------------------------------------- |
-| `flue init`                       | Create `flue.config.ts`                 |
-| `flue dev`                        | Serve + watch local app                 |
-| `flue run <name> --input '{...}'` | Execute one agent/workflow              |
-| `flue build`                      | Create deployable artifacts             |
-| `flue add <type>`                 | Fetch blueprints (sandbox, channel, db) |
-| `flue update`                     | Refresh blueprints                      |
-| `flue docs [search\|read]`        | Offline documentation                   |
+`@flue/cli` requires Node ≥22.19. **The CLI is not the build tool** — `vite dev`/`vite build` (with `flue()` from `@flue/vite`) own dev servers and builds. `flue dev`/`flue build` were removed and error with pointers.
 
-### `flue dev`
+| Command                                                                                                                        | Description                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `flue init [dir] [--target node\|cloudflare] [--deploy] [--force]`                                                             | Scaffold a starter project (writes files only — run `npm install` after). `--deploy` adds server setup (implied for cloudflare)                                                                                                                                                                  |
+| `flue run <path> --message <text> [--name <agent>] [--id <id>] [--data <json>] [--uid <uid> \| --new] [--env <path>] [--json]` | Run one agent module locally, no server. Reply → stdout; everything else → stderr; `--json` prints one `{ id, agent, submissionId, outcome, message\|error, uid }` envelope. Exit: 0 completed / 1 failed / 130 aborted. `--new` = create-only, `--uid` = continue-only; `--data` only on create |
+| `flue add [kind] [name\|url]`                                                                                                  | Fetch a blueprint guide (channel, database, sandbox) for your coding agent; no args lists blueprints                                                                                                                                                                                             |
+| `flue update <kind> <name\|url>`                                                                                               | Fetch the same guide with upgrade instructions for an existing integration                                                                                                                                                                                                                       |
+| `flue docs [read\|search]`                                                                                                     | Browse the bundled documentation offline (`flue docs read <path>`, `flue docs search <query>`)                                                                                                                                                                                                   |
 
-- Default port: 3583
-- Watches source files, rebuilds on change
-- Supports `--target node` and `--target cloudflare`
+Global flags: `--help/-h`, `--version/-v` only. Primary payload → stdout, everything else → stderr (piping-safe).
 
-### `flue run`
-
-- Without `--server`: starts temporary runtime, executes `app.ts` + middleware
-- With `--server <path>`: uses a non-root mount (e.g., `/api/flue`)
-- With `--server <url>`: attaches to external server
-
-Full reference: `./reference/docs_cli_overview_index.md`
+Full references: `./reference/docs_cli_overview_index.md`, `./reference/docs_cli_run_index.md`, `./reference/docs_cli_init_index.md`
 
 ______________________________________________________________________
 
 ## SDK Reference
 
-`@flue/sdk` for consuming deployed Flue applications.
+`@flue/sdk` — TypeScript client for **one conversation URL** of a deployed app. ESM-only, runs anywhere `fetch` exists; one dependency (`@durable-streams/client`).
 
 ```ts
 import { createFlueClient } from '@flue/sdk';
 
-const client = createFlueClient({
-  baseUrl: 'https://example.com/api',
-  token: process.env.FLUE_TOKEN,
+const conversation = createFlueClient({
+  url: 'https://example.com/agents/support/ticket-8472',
+  token: process.env.FLUE_TOKEN,   // or headers: {...}
 });
+
+const admission = await conversation.send({
+  message: { kind: 'user', body: 'Summarize the open issues in my case.' },
+});
+const reply = await conversation.read(admission); // waits for settlement; throws FlueExecutionError
 ```
 
-### API Namespaces
+| Method            | Route                       | Purpose                                                                         |
+| ----------------- | --------------------------- | ------------------------------------------------------------------------------- |
+| `send()`          | `POST <url>`                | Admit a message (202; body = `DeliveredMessage` + optional `initialData`/`uid`) |
+| `wait()`          | `GET ?view=updates`         | Resolve on submission settlement (resolves `void`; throws on failure/abort)     |
+| `read()`          | wait + `?view=history`      | Settlement + extract that submission's reply                                    |
+| `history()`       | `GET ?view=history`         | One materialized conversation snapshot                                          |
+| `observe()`       | history + updates           | Live view with reconnection/rehydration/dedup                                   |
+| `abort()`         | `POST <url>/abort`          | Durable abort of in-flight + queued work                                        |
+| `attachmentUrl()` | `GET <url>/attachments/:id` | Resolve a `file` part's bytes                                                   |
 
-| Namespace          | Methods                                   |
-| ------------------ | ----------------------------------------- |
-| `client.agents`    | `prompt(...)`, `send(...)`, `stream(...)` |
-| `client.workflows` | `invoke(...)`                             |
-| `client.runs`      | `get(...)`, `events(...)`, `stream(...)`  |
+- One conversation per client — no deployment-wide addressing, no enumeration. New conversation = fresh id appended to the mount URL.
+- Errors: `FlueApiError` (HTTP), `FlueExecutionError` (failed/aborted settlements — `.failure` `'aborted'` | `'failed'`).
+- Cloudflare service binding: point the client's `fetch` option at the binding (baseUrl host never dialed).
 
-Full reference: `./reference/docs_sdk_overview_index.md`
+Full references: `./reference/docs_sdk_overview_index.md`, `./reference/docs_sdk_flue-client_index.md`
 
 ______________________________________________________________________
 
@@ -959,104 +958,65 @@ ______________________________________________________________________
 ### Node.js
 
 ```bash
-npx flue build --target node
-node dist/server.mjs
+npx vite build
+node dist/server.mjs        # port 3000 (set PORT); reads only the supplied env — no .env loading
 ```
 
-- Default port: 3000 (set `PORT` env)
-- `flue dev` default: 3583
-- `local()` sandbox for host filesystem access
-- Durable adapters: SQLite, Postgres
+- `dist/server.mjs` (self-starting) + `dist/app.mjs` (importable chunk, served by `vite preview`).
+- Dependencies are externalized — deploy alongside `node_modules` or in a container.
+- `local()` sandbox, `sqlite()`/ecosystem DB, one live owner per conversation.
 
 ### Cloudflare
 
 ```bash
-npx flue build --target cloudflare
-npx wrangler deploy
+npm install @cloudflare/vite-plugin
+npx vite build && npx wrangler deploy
 ```
 
-- Agents run inside Durable Objects (SQLite)
-- `cloudflare/...` provider for Workers AI
-- Requires `wrangler.jsonc` with `nodejs_compat` flag
-- Generated DO classes: `Flue<Name>Agent`, `Flue<Name>Workflow`
-- Durable Streams for event streaming
+- `vite.config.ts`: `plugins: [flue(), cloudflare()]` — **flue() first** (wrong order = diagnosed error). `flueWorkerConfig()` customizer keeps `wrangler.jsonc` user-owned; nothing generated into the tree beyond `.flue-vite/` (gitignore it).
+- One generated Durable Object class per agent: `SupportChat` → `FlueSupportChatAgent` / binding `env.FLUE_SUPPORT_CHAT_AGENT`. SQLite storage is automatic. **No `db.ts`.**
+- `wrangler.jsonc` must declare `nodejs_compat` compatibility flag + user-authored migrations: add an agent = `new_sqlite_classes` with a unique tag; removals = `deleted_classes`; identity renames = `renamed_classes` (preserves stored conversations). Never rewrite deployed migration entries.
+- `cloudflare/...` model specifiers run on Workers AI with no API keys. `createCloudflareTracing()` (auto-installed; disable with `tracing: false`).
+- Private agents over service bindings: SDK `fetch` option → binding.
+- `cloudflare.ts` entrypoint extension: `extend({ base, wrap })` for Agents SDK hooks (schedules, Sentry `wrap`).
 
-#### Wrangler Migrations
-
-```jsonc
-{
-  "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["FlueRegistry", "FlueSupportChatAgent"] },
-    { "tag": "v2", "new_sqlite_classes": ["FlueTranslateWorkflow"] },
-    { "tag": "v3", "deleted_classes": ["FlueSupportChatAgent"] },
-  ]
-}
-```
-
-#### Cloudflare Extension API
-
-```ts
-import { extend } from '@flue/runtime/cloudflare';
-
-export const cloudflare = extend({
-  base: (Base) => class extends Base {
-    async onStart() {
-      await this.scheduleEvery(60, 'heartbeat');
-    }
-  },
-});
-```
-
-Full references:
-
-- `./reference/docs_guide_targets_node_index.md`
-- `./reference/docs_guide_targets_cloudflare_index.md`
+Full references: `./reference/docs_guide_deploy_index.md`, `./reference/docs_guide_node-target_index.md`, `./reference/docs_guide_cloudflare-target_index.md`
 
 ______________________________________________________________________
 
 ## Ecosystem
 
-### Channels (17+ providers)
+**Channels (17):** Discord, Facebook/Messenger, GitHub, Google Chat, Intercom, Linear, MS Teams, Notion, Resend, Salesforce, Shopify, Slack, Stripe, Telegram, Twilio, WhatsApp, Zendesk — all blueprints (`flue add channel <name>`)
 
-Discord, Facebook, GitHub, Google Chat, Intercom, Linear, MS Teams, Notion, Resend, Salesforce, Shopify, Slack, Stripe, Telegram, Twilio, WhatsApp, Zendesk
+**Sandboxes:** Cloudflare Sandbox, Cloudflare Shell, Daytona, E2B, Modal, Vercel Sandbox, boxd, exe.dev, islo, Mirage, smolvm
 
-### Sandboxes
+**Deploy:** AWS, Cloudflare, Docker, Fly.io, GitHub Actions, GitLab CI/CD, Node.js, Railway, Render, SST
 
-Cloudflare Sandbox, Cloudflare Shell, Daytona, E2B, Modal, Vercel Sandbox, boxd, exe.dev, islo, Mirage, smolvm
+**Databases:** libSQL, MongoDB, MySQL, Postgres, Redis, Supabase, Turso, Valkey (driver-free, bring-your-own-driver adapters)
 
-### Deploy Targets
-
-AWS, Cloudflare, Docker, Fly.io, GitHub Actions, GitLab CI/CD, Node.js, Railway, Render, SST
-
-### Databases
-
-libSQL, MongoDB, MySQL, Postgres, Redis, Supabase, Turso, Valkey
-
-### Tooling
-
-Braintrust, OpenTelemetry, Sentry, Vitest Evals
+**Tooling:** Braintrust, OpenTelemetry, Sentry, Vitest Evals
 
 Full reference: `./reference/docs_ecosystem_index.md`
 
 ______________________________________________________________________
 
-## Durable Agents
+## v2 Migration Cheat Sheet (from v0.x/1.x)
 
-### Platform Comparison
+| Was (v0.x/1.x)                                                     | Is (v2)                                                                                       |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `defineAgent(() => ({ model, instructions, tools, ... }))`         | `'use agent'` + exported function + hooks (`useModel`, `useTool`, …)                          |
+| `defineWorkflow`, `invoke()`, run stores, `/runs/:runId`           | Removed — drive agents via `flue run`, `start()`/`init()`, SDK, or external durable engines   |
+| `defineAgentProfile` / `profile`                                   | Subagents are `defineSubagent({ name, description, agent })` values                           |
+| `dispatch({ input })`                                              | `dispatch({ id, message: DeliveredMessage, initialData?, uid? })`                             |
+| `defineTool({ parameters, execute })`                              | `defineTool({ input, output, run({ data, signal, log }) })`, return `{ output?, terminate? }` |
+| `connectMcpServer(name, opts)`                                     | `useMcpConnection(def)` / `defineMcpConnection` / `createMcpConnection`                       |
+| `SKILL.md with { type: 'skill' }`                                  | Plain static `SKILL.md` import; other `.md` = text; `defineSkill` for inline                  |
+| Implicit virtual sandbox                                           | Opt-in `useSandbox(...)` — no sandbox, no file/shell tools                                    |
+| `registerProvider(id, opts)`                                       | `setProvider(piProvider)`; `providers: [...]` config; pi-ai `createProvider`                  |
+| `flue dev` / `flue build`                                          | `vite dev` / `vite build` with `flue()` plugin from `@flue/vite`                              |
+| File-based routing (`agents/`, `channels/`, named `route` exports) | Explicit `app.ts` mounts: `createAgentRouter`, `channel.route()`                              |
+| `@flue/sdk` `client.agents.prompt(...)` / baseUrl                  | `createFlueClient({ url })`: `send()` + `read()`/`wait()`/`history()`                         |
+| `@flue/react` `useFlueAgent({ name, id })`                         | `useFlueAgent({ url })`                                                                       |
+| `flue run <name> --input '...'`                                    | `flue run <path> --message "..." [--id] [--data] [--new]`                                     |
 
-| Feature              | Cloudflare             | Node (no db.ts) | Node (durable db.ts)  |
-| -------------------- | ---------------------- | --------------- | --------------------- |
-| State survival       | Durable Object SQLite  | Lost on restart | File/DB survives      |
-| Recovery trigger     | Object startup, wake   | None            | Startup + lease scans |
-| Ownership            | DO routing (one owner) | Process-local   | One live Node owner   |
-| Interrupted workflow | Terminalizes run       | Lost            | Orphaned (active)     |
-
-### Recovery Rules
-
-- Recognizes already-completed output
-- Reuses completed tool results
-- Records interruption vs. retry
-- Tool call with no durable result = interrupted (not retried)
-- At-most-once recovery (at-least-once for prompts without observable effect)
-
-Full reference: `./reference/docs_concepts_durable-execution_index.md`
+Full before/after: `./reference/docs_guide_migration_index.md`

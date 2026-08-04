@@ -6,83 +6,59 @@ image: https://flueframework.com/docs/og4.jpg
 
 # Project Layout
 
-Last updated Jun 22, 2026 [ View as Markdown ](https://flueframework.com/docs/guide/project-layout/index.md)
+Last updated Jul 21, 2026[View as Markdown](https://flueframework.com/docs/guide/project-layout/index.md)
 
-Flue discovers application entrypoints from your project’s source directory. Use `src/` for new projects, with `app.ts`, `db.ts`, `cloudflare.ts`, `agents/`, `workflows/`, and `channels/` defining the application surfaces Flue builds.
+Flue has few required conventions for file and folder layout. The examples below show the recommended structure for single- and multi-agent projects.
 
-## Example project layout
+## Example agent codebase
 
-```text
+```yaml
 my-project/
-├─ package.json
-├─ flue.config.ts
-├─ src/
-│  ├─ app.ts
-│  ├─ db.ts
-│  ├─ cloudflare.ts
-│  ├─ agents/
-│  │  └─ support-assistant.ts
-│  ├─ workflows/
-│  │  └─ summarize-ticket.ts
-│  └─ channels/
-│     └─ github.ts
-└─ dist/
+├─ src/                  # Source directory
+│  ├─ app.ts             # Server and router entrypoint (required)
+│  ├─ db.ts              # Database configuration (optional)
+│  ├─ cloudflare.ts      # Cloudflare-specific entrypoint (optional)
+│  ├─ agent.ts
+│  ├─ skills/...
+│  ├─ tools/...
+│  ├─ subagents/...
+│  └─ channels/...
+├─ package.json          # npm project configuration
+├─ vite.config.ts        # Vite configuration (optional)
+└─ flue.config.ts        # Flue project configuration (optional)
 ```
 
-Organize supporting application code however you prefer inside `src/`. The files and directories below are the parts of your application that Flue discovers and builds automatically.
+## Example multi-agent codebase
 
-## Important files and directories
+```yaml
+my-project/
+├─ src/                  # Source directory
+│  ├─ app.ts             # Server and router entrypoint (required)
+│  ├─ db.ts              # Database configuration (optional)
+│  ├─ cloudflare.ts      # Cloudflare-specific entrypoint (optional)
+│  └─ agents/
+│     ├─ support-agent/
+│     │  ├─ skills/...
+│     │  ├─ tools/...
+│     │  ├─ subagents/...
+│     │  ├─ channels/...
+│     │  └─ agent.ts
+│     ├─ triage-agent/
+│     └─ shared/
+├─ package.json          # npm project configuration
+├─ vite.config.ts        # Vite configuration (optional)
+└─ flue.config.ts        # Flue project configuration (optional)
+```
 
-| Path          | Purpose                                                                               | Learn more                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| app.ts        | Optional entrypoint for composing Flue with your application’s routes and middleware. | [Routing](https://flueframework.com/docs/guide/routing/)                                       |
-| db.ts         | Optional Node.js persistence adapter for agent conversations and workflow runs.       | [Database](https://flueframework.com/docs/guide/database/)                                     |
-| cloudflare.ts | Optional Cloudflare-only module for Worker exports and non-HTTP handlers.             | [Cloudflare](https://flueframework.com/docs/ecosystem/deploy/cloudflare/#extending-the-worker) |
-| agents/       | Addressable agents that can receive continuing interactions over time.                | [Agents](https://flueframework.com/docs/guide/building-agents/)                                |
-| workflows/    | Finite operations that receive input and return a result.                             | [Workflows](https://flueframework.com/docs/guide/workflows/)                                   |
-| channels/     | Verified provider HTTP ingress discovered by filename.                                | [Channels](https://flueframework.com/docs/guide/channels/)                                     |
+## Top-level files
 
-### `app.ts`
-
-`app.ts` is an optional custom application entrypoint. Add it when your server needs to compose Flue routes with application behavior such as authentication, webhooks, health endpoints, or a route prefix. A project without `app.ts` uses Flue’s generated application directly.
-
-For more information, see [Routing](https://flueframework.com/docs/guide/routing/).
-
-### `db.ts`
-
-`db.ts` is an optional Node.js persistence entrypoint. Its default export configures the `PersistenceAdapter` used for canonical agent conversations, attachments, accepted submissions, and workflow-run records. Without it, Node.js uses in-memory SQLite and loses this state when the process exits. Cloudflare provides Durable Object SQLite automatically and rejects `db.ts`.
-
-For more information, see [Database](https://flueframework.com/docs/guide/database/).
-
-### `cloudflare.ts`
-
-`cloudflare.ts` is an optional Cloudflare-only deployment module. Its named exports become top-level Worker exports, and its optional default export adds non-HTTP Worker handlers. Use it for same-Worker Durable Object classes, explicit Cloudflare Sandbox aliases, queue consumers, scheduled handlers, and other Cloudflare-native additions. Custom HTTP handling remains in `app.ts`.
-
-For more information, see [Deploy on Cloudflare](https://flueframework.com/docs/ecosystem/deploy/cloudflare/#extending-the-worker).
-
-### `agents/`
-
-The `agents/` directory contains agents that Flue can address by name. Each immediate file defines one discovered agent, and its filename becomes the agent name: `src/agents/support-assistant.ts` is discovered as `support-assistant`.
-
-Keep agent files flat inside `agents/`; nested files are not discovered as additional agents. Prefer lower-kebab-case filenames such as `support-assistant.ts` so names remain portable across deployment targets.
-
-For more information, see [Agents](https://flueframework.com/docs/guide/building-agents/).
-
-### `workflows/`
-
-The `workflows/` directory contains finite operations that Flue can invoke by name. Each immediate file defines one discovered workflow, and its filename becomes the workflow name: `src/workflows/summarize-ticket.ts` is discovered as `summarize-ticket`.
-
-Keep workflow files flat inside `workflows/`; nested files are not discovered as additional workflows. Prefer lower-kebab-case filenames such as `summarize-ticket.ts` so names remain portable across deployment targets.
-
-For more information, see [Workflows](https://flueframework.com/docs/guide/workflows/).
-
-### `channels/`
-
-The `channels/` directory contains provider HTTP integrations. Each immediate file must export one named `channel` binding. Its filename becomes an immutable namespace: `src/channels/github.ts` publishes provider-declared routes beneath `/channels/github`.
-
-Nested files are ordinary support modules and are not discovered as channels. Every route has a provider-owned non-empty suffix such as `/webhook`, `/events`, or `/interactions`; `/channels/github` itself is not an endpoint.
-
-For more information, see [Channels](https://flueframework.com/docs/guide/channels/).
+| Path                                                                                                           | Purpose                                                |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [flue.config.ts](https://flueframework.com/docs/reference/configuration/)                                      | Flue project configuration. Optional.                  |
+| [vite.config.ts](https://flueframework.com/docs/guide/deploy/)                                                 | Vite build & dev server configuration. Optional.       |
+| [src/app.ts](https://flueframework.com/docs/guide/routing/)                                                    | Application route map and server entrypoint. Required. |
+| [src/db.ts](https://flueframework.com/docs/guide/database/)                                                    | Database configuration. Optional.                      |
+| [src/cloudflare.ts](https://flueframework.com/docs/guide/cloudflare-target/#extending-cloudflarets-entrypoint) | Cloudflare entrypoint configuration. Optional.         |
 
 ## Source directory
 
@@ -92,25 +68,13 @@ For more information, see [Channels](https://flueframework.com/docs/guide/channe
 1. `src/` **(Recommended)** — The recommended layout for new projects.
 1. The project root — A compact layout for small dedicated projects.
 
-The first matching directory wins. Flue does not merge layouts: when `.flue/` exists, it does not discover agents, workflows, channels, `app.ts`, `db.ts`, or `cloudflare.ts` from `src/` or the project root. Authored modules may still import ordinary supporting code from elsewhere in the project.
+The first matching directory wins. Flue does not merge layouts: when `.flue/` exists, `app.ts`, `db.ts`, `cloudflare.ts`, and the `'use agent'` scan are resolved from it, not from `src/` or the project root. Authored modules may still import ordinary supporting code from elsewhere in the project.
 
-The source directory is always discovered relative to your project root. To configure the project root, see [Configuration](https://flueframework.com/docs/reference/configuration/).
+Entry module paths (`app.ts`, `db.ts`, `cloudflare.ts`) can be configured explicitly in your `flue.config.ts` file. See [Configuration](https://flueframework.com/docs/reference/configuration/) for more details.
 
-## Output directory
+## Generated output
 
-`dist/` is the default output directory for generated build artifacts. It is created at the project root when you build the application and is never part of authored source discovery.
-
-To change where generated artifacts are written, set `output` in `flue.config.ts`:
-
-```ts
-import { defineConfig } from '@flue/cli/config';
-
-export default defineConfig({
-  output: './build',
-});
-```
-
-For more information about project and output configuration, see [Configuration](https://flueframework.com/docs/reference/configuration/).
+`dist/` is the default build output directory when you run `vite build`. You can customize this in your `vite.config.ts` file.
 
 ## Docs Navigation
 
@@ -118,43 +82,48 @@ Current page: [Project Layout](https://flueframework.com/docs/guide/project-layo
 
 ### Sections
 
-- [Guide](https://flueframework.com/docs/getting-started/quickstart/)
-- [Reference](https://flueframework.com/docs/api/agent-api/)
+- [Guide](https://flueframework.com/docs/guide/getting-started/)
+- [Reference](https://flueframework.com/docs/reference/agent-api/)
 - [CLI](https://flueframework.com/docs/cli/overview/)
-- [SDK](https://flueframework.com/docs/sdk/overview/)
+- [Agent SDK](https://flueframework.com/docs/sdk/overview/)
 - [Ecosystem](https://flueframework.com/docs/ecosystem/)
 
 ### Introduction
 
-- [ Getting Started ](https://flueframework.com/docs/getting-started/quickstart/)
-- [ Why Flue? ](https://flueframework.com/docs/introduction/why-flue/)
-- [ What is an agent? ](https://flueframework.com/docs/concepts/agents/)
-- [ Durable Agents ](https://flueframework.com/docs/concepts/durable-execution/)
-- [ Changelog ](https://github.com/withastro/flue/blob/main/CHANGELOG.md)
+- [Getting Started](https://flueframework.com/docs/guide/getting-started/)
+- [Why Flue?](https://flueframework.com/docs/guide/why-flue/)
+- [Migration Guide](https://flueframework.com/docs/guide/migration/)
+- [Changelog](https://github.com/withastro/flue/blob/main/CHANGELOG.md)
 
 ### Guides
 
-- [ Project Layout ](https://flueframework.com/docs/guide/project-layout/)
-- [ Routing ](https://flueframework.com/docs/guide/routing/)
-- [ Database ](https://flueframework.com/docs/guide/database/)
-- [ Agents ](https://flueframework.com/docs/guide/building-agents/)
-- [ Workflows ](https://flueframework.com/docs/guide/workflows/)
-- [ Actions ](https://flueframework.com/docs/guide/actions/)
-- [ LLM ](https://flueframework.com/docs/guide/models/)
-- [ Tools ](https://flueframework.com/docs/guide/tools/)
-- [ Skills ](https://flueframework.com/docs/guide/skills/)
-- [ Subagents ](https://flueframework.com/docs/guide/subagents/)
-- [ Sandboxes ](https://flueframework.com/docs/guide/sandboxes/)
-- [ Schedules ](https://flueframework.com/docs/guide/schedules/)
-- [ Channels ](https://flueframework.com/docs/guide/channels/)
-- [ Evals ](https://flueframework.com/docs/guide/evals/)
-- [ Observability ](https://flueframework.com/docs/guide/observability/)
+- [Project Layout](https://flueframework.com/docs/guide/project-layout/)
+- [Agents](https://flueframework.com/docs/guide/building-agents/)
+- [Agent Hooks](https://flueframework.com/docs/guide/agent-hooks/)
+- [Models](https://flueframework.com/docs/guide/models/)
+- [Tools](https://flueframework.com/docs/guide/tools/)
+- [MCP](https://flueframework.com/docs/guide/mcp/)
+- [Skills](https://flueframework.com/docs/guide/skills/)
+- [Subagents](https://flueframework.com/docs/guide/subagents/)
+- [Sandboxes](https://flueframework.com/docs/guide/sandboxes/)
+- [Routing](https://flueframework.com/docs/guide/routing/)
+- [Database](https://flueframework.com/docs/guide/database/)
+
+### Advanced
+
+- [Deploy](https://flueframework.com/docs/guide/deploy/)
+- [Workflows](https://flueframework.com/docs/guide/workflows/)
+- [Schedules](https://flueframework.com/docs/guide/schedules/)
+- [Channels](https://flueframework.com/docs/guide/channels/)
+- [Evals](https://flueframework.com/docs/guide/evals/)
+- [Observability](https://flueframework.com/docs/guide/observability/)
+- [Durability](https://flueframework.com/docs/guide/durability/)
 
 ### Frontend
 
-- [ React ](https://flueframework.com/docs/guide/react/)
+- [React](https://flueframework.com/docs/guide/react/)
 
 ### Targets
 
-- [ Cloudflare ](https://flueframework.com/docs/guide/targets/cloudflare/)
-- [ Node.js ](https://flueframework.com/docs/guide/targets/node/)
+- [Cloudflare](https://flueframework.com/docs/guide/cloudflare-target/)
+- [Node.js](https://flueframework.com/docs/guide/node-target/)
