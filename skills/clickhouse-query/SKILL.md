@@ -1,11 +1,17 @@
 ---
 name: clickhouse-query
-description: Run read-only SQL queries against ClickHouse databases. Connect via CLICKHOUSE_* environment variables — no connection details exposed to the agent.
+description: Run read-only SQL queries against ClickHouse databases. Connect via CLICKHOUSE_* environment variables — no connection details exposed to the agent. Queries are statically validated (single SELECT only) and the session user must hold only direct SELECT grants.
 ---
 
 # ClickHouse Query Skill
 
-Run read-only queries against a ClickHouse database. The bundled script uses [clickhouse-connect](https://clickhouse.com/docs/integrations/language-clients/python) over the HTTP interface with server-side read-only enforcement (`SET readonly = 2`) — writes are rejected by the database with error 164 (`READONLY`).
+Run read-only queries against a ClickHouse database. The bundled script enforces read-only at three layers before anything meaningful reaches the database:
+
+1. **Static shape validation** — sqlglot (ClickHouse dialect) accepts only a single read-only `SELECT` (CTEs and set operations allowed). DML/DDL, `SHOW`/`GRANT`/`REVOKE`/`OPTIMIZE`, `DESCRIBE`, `EXPLAIN`, multi-statement input, and unparseable SQL are rejected with exit code 3 **before a connection is made**.
+1. **Side-effect denylist** — `INTO OUTFILE` (writes a file on the server), table functions with external I/O (`url()`, `s3()`, `file()`, `remote()`, …) and `sleep()`/`sleepEachRow()` are rejected.
+1. **Privilege gate** — before every query the script runs `SHOW GRANTS`; the session user must hold only direct `SELECT` grants. Anything else (including `GRANT ALL` and role-based grants) is rejected with exit code 3. A dedicated SELECT-only user is **mandatory, not optional**.
+
+Server-side `SET readonly = 2` remains as defense-in-depth — persistent `INSERT`/`ALTER`/`DROP`/mutations are rejected by the database with error 164 (`READONLY`).
 
 **Connection details are never known to the agent.** The user configures `CLICKHOUSE_*` environment variables before starting the agent session. The agent references `$CLICKHOUSE_HOST` etc. in commands — bash expands them at runtime, the literal values never enter the agent's context.
 
@@ -19,11 +25,11 @@ Run read-only queries against a ClickHouse database. The bundled script uses [cl
 
 Before using this skill, the user must configure two things **outside the agent session**:
 
-### 1. Use a dedicated SELECT-only user (recommended)
+### 1. Use a dedicated SELECT-only user (mandatory — enforced)
 
-Do **not** connect with an admin or `default` account that has broad privileges. The script sets `readonly = 2`, which blocks persistent table writes, but an admin user can still perform non-DML state changes (for example, `REVOKE`) or run privileged functions and integrations with side effects.
+Do **not** connect with an admin or `default` account that has broad privileges. The script rejects **every** query with exit code 3 when the session user holds any grant other than direct `SELECT` grants — a dedicated SELECT-only user is mandatory, not optional. The user below is the only supported configuration.
 
-For a genuine read-only guarantee, create a dedicated user with a server-side read-only profile and only `SELECT` grants:
+Create a user with only `SELECT` grants:
 
 ```sql
 CREATE USER readonly_user IDENTIFIED WITH plaintext_password BY '...';
@@ -32,7 +38,7 @@ ALTER USER readonly_user SETTINGS PROFILE 'readonly_profile';
 GRANT SELECT ON your_database.* TO readonly_user;
 ```
 
-Then set `CLICKHOUSE_USER=readonly_user` in the environment.
+Grant `SELECT` **directly to the user** — role-based grants are also rejected by the gate. Then set `CLICKHOUSE_USER=readonly_user` in the environment.
 
 ### 2. Configure environment variables
 
@@ -49,7 +55,7 @@ Set these in `~/.bashrc`, `~/.zshrc`, or export before starting the agent. For C
 
 ## What the agent does
 
-### Check that the connection is configured
+### 1. Check that the connection is configured
 
 ```bash
 test -n "$CLICKHOUSE_HOST" && test -n "$CLICKHOUSE_PASSWORD" && echo "configured" || echo "missing"
@@ -72,11 +78,30 @@ If missing, tell the user:
 
 Do not ask for or accept connection details. The user configures them outside the agent session. The script reads `$CLICKHOUSE_HOST`, `$CLICKHOUSE_PORT`, `$CLICKHOUSE_DATABASE`, `$CLICKHOUSE_USER`, `$CLICKHOUSE_PASSWORD`, `$CLICKHOUSE_SECURE` from the environment — reference these variables in commands, bash expands them, the agent never sees the actual values.
 
+### 2. Verify the session is a SELECT-only user
+
+Run the privilege check before any query to confirm the environment is set up correctly:
+
+```bash
+uv run scripts/query.py --check-privileges
+```
+
+This is a gate, not just reporting: the script rejects every query with exit code 3 when the session user holds any grant other than direct `SELECT` grants (see Safety). No exceptions — a privileged session never executes a query, even a "harmless" read-only one.
+
+Report the result to the user:
+
+- Every line is `GRANT SELECT ...` → "Session is SELECT-only. Proceeding."
+- Any other line (e.g. `GRANT ALL ON *.* TO default WITH GRANT OPTION`) or rejection with exit code 3 → "Session is not a SELECT-only user — queries are rejected. Configure `readonly_user` (see Setup) and restart the agent session." Do not attempt to work around the rejection.
+
+### 3. Run the query
+
+The script reads `$CLICKHOUSE_HOST`, `$CLICKHOUSE_PORT`, `$CLICKHOUSE_DATABASE`, `$CLICKHOUSE_USER`, `$CLICKHOUSE_PASSWORD`, `$CLICKHOUSE_SECURE` from the environment. Reference these variables in commands — bash expands them, the agent never sees the actual values. The script validates the SQL shape (single read-only `SELECT`, CTEs allowed) and the session grants **before the query reaches the database** — if the query is rejected (shape or privileges), report the error verbatim and stop. Do not attempt to work around a rejection.
+
 ## Available script
 
-| Script             | Description                                              |
-| ------------------ | -------------------------------------------------------- |
-| `scripts/query.py` | Execute a read-only SQL query, results as JSON/CSV/table |
+| Script             | Description                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/query.py` | Execute a read-only ClickHouse query (SELECT-only validation + side-effect denylist + privilege gate), results as JSON/CSV/table |
 
 Uses [PEP 723](https://peps.python.org/pep-0723/) inline metadata — `uv run` installs dependencies on demand. No manual install step needed.
 
@@ -119,10 +144,11 @@ uv run scripts/query.py "SELECT * FROM events" --format table
 
 ### Other flags
 
-| Flag            | Description                                             |
-| --------------- | ------------------------------------------------------- |
-| `--timeout SEC` | Query timeout in seconds (default: 30, `0` = unlimited) |
-| `--verbose`     | Print connection info and row count to stderr           |
+| Flag                 | Description                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--timeout SEC`      | Server-side `max_execution_time` in seconds (default: 30, `0` = unlimited). Sent only when the server permits it (the setting is not READONLY for the session); otherwise the client read timeout and the wall-clock deadline below still bound the run. A wall-clock deadline of `--timeout` + 70s also bounds the whole run (connect, gate, query, transfer) — a stuck run aborts instead of hanging. |
+| `--check-privileges` | Print the session user's grants and verify they are SELECT-only, then exit (0 = ok, 3 = rejected)                                                                                                                                                                                                                                                                                                       |
+| `--verbose`          | Print connection info and row count to stderr                                                                                                                                                                                                                                                                                                                                                           |
 
 **Advanced — explicit overrides** (only when the user explicitly asks):
 
@@ -180,8 +206,10 @@ uv run scripts/query.py \
 
 ## Safety
 
-- The script sets `SET readonly = 2` immediately after connecting. `readonly` is a one-way ratchet — it cannot be lowered within the session. Persistent `INSERT`, `DELETE`, `ALTER`, `DROP`, `TRUNCATE`, `CREATE`, mutations, and other table writes are rejected by the server with error 164 (`READONLY`). Session settings and in-memory temporary tables remain available.
-- This is a persistent-data guard, not a security boundary for admin credentials. ClickHouse permits some non-DML state changes in read-only mode (for example, `REVOKE`). Privileged functions and external integrations may also have side effects. Use a dedicated `SELECT`-only user and a server-side read-only profile when untrusted queries or a strong read-only guarantee are involved.
-- The `--timeout` is applied as a server-side `max_execution_time` session limit before enabling read-only.
-- Connection errors, query errors, and timeouts print descriptive messages (with ClickHouse error code, e.g. `164 READONLY`, `159 TIMEOUT_EXCEEDED`) to stderr and exit with code 1.
+- **Query-shape validation (static, before connecting):** the script parses the input with sqlglot (ClickHouse dialect) and accepts only a single read-only `SELECT` — CTEs and set operations (`UNION`) are allowed, and anything inside a CTE must also be read-only. DML/DDL (`INSERT`, `UPDATE`/`ALTER TABLE … UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, `OPTIMIZE`, …), `SHOW`, `DESCRIBE`, `GRANT`/`REVOKE` and other `Command` statements, transaction control, multi-statement input, and unparseable SQL are rejected with exit code 3 before a connection is ever made. `EXPLAIN` is intentionally unsupported — ClickHouse `EXPLAIN` does not execute the query (low value), and `EXPLAIN ANALYZE` does; debug via `system.processes` / `system.query_log` instead. Note: this is statement-level validation — it does not inspect function bodies; read-only side effects are limited by the denylist and the privilege gate below.
+- **Side-effect denylist:** `INTO OUTFILE` (server-side file write), table functions with external I/O (`url`, `s3`, `file`, `remote`, `hdfs`, `mysql`, `postgresql`, `odbc`, `jdbc`, `sqlite`, …) and `sleep()`/`sleepEachRow()` are rejected.
+- **Privilege gate (deterministic, no exceptions):** before every query the script runs `SHOW GRANTS` and rejects with exit code 3 — refusing the query — if the session user holds any grant other than direct `SELECT` grants (including `GRANT ALL`), holds role-based grants, or the grants cannot be verified. A privileged session never executes a query, even a read-only one. This also closes the `readonly = 2` gap: non-DML state changes such as `REVOKE` are rejected statically as `Command` statements.
+- **Server-side read-only:** the script sets `SET readonly = 2` after the gate. `readonly` is a one-way ratchet — it cannot be lowered within the session. Persistent `INSERT`, `DELETE`, `ALTER`, `DROP`, `TRUNCATE`, `CREATE`, mutations, and other table writes are rejected by the server with error 164 (`READONLY`). Session settings and in-memory temporary tables remain available.
+- **No hanging runs:** connections use a 10s connect timeout; the query runs under a server-side `max_execution_time` (`--timeout`, default 30s — auto-skipped when the server profile declares the setting READONLY, in which case the client read timeout and wall-clock deadline still bound the run), and the whole run (connect, privilege gate, query, transfer) is bounded by a wall-clock deadline of `--timeout` + 70s. `--timeout 0` disables all limits.
+- **Exit codes:** 1 = connection/query errors and timeouts (descriptive messages with ClickHouse error codes, e.g. `164 READONLY`, `159 TIMEOUT_EXCEEDED`), 2 = missing dependency, 3 = validation/privilege rejection.
 - Structured output goes to stdout only — diagnostics are always on stderr, so JSON/CSV output remains parseable.
