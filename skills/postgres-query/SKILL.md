@@ -145,7 +145,7 @@ uv run scripts/query.py "SELECT * FROM users" --format table
 
 | Flag            | Description                                   |
 | --------------- | --------------------------------------------- |
-| `--timeout SEC` | Query timeout in seconds (default: 30)        |
+| `--timeout SEC` | Server-side statement timeout in seconds (default: 30). A wall-clock deadline of `--timeout` + 70s also bounds the whole run (connect, query, transfer) — a stuck run aborts instead of hanging. |
 | `--verbose`     | Print connection info and row count to stderr |
 
 **Advanced — explicit overrides** (only when the user explicitly asks):
@@ -201,5 +201,6 @@ uv run scripts/query.py \
 - **Query-shape validation (static, before connecting):** the script parses the input with sqlglot (Postgres dialect) and accepts only a single read-only `SELECT` — CTEs and set operations (`UNION`/`INTERSECT`/`EXCEPT`) are allowed, and anything inside a CTE must also be read-only. `EXPLAIN` / `EXPLAIN ANALYZE` is allowed only when it wraps a read-only `SELECT` (it executes the query, so the inner statement must pass the same validation). DML/DDL (`INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, …), transaction control, `COPY`, `LISTEN`/`NOTIFY`, locking reads (`SELECT ... FOR UPDATE`), multi-statement input, and unparseable SQL are rejected with exit code 3 before a connection is ever made. Note: this is statement-level validation — it does not inspect function bodies (e.g. `SELECT nextval(...)` still parses as a `SELECT`); read-only side effects are limited by the READ ONLY transaction and the privilege gate below.
 - **Privilege gate (deterministic, no exceptions):** before every query the script checks the session role's flags (`rolsuper`, `rolcreaterole`, `rolcreatedb`, `rolbypassrls`, `rolreplication`) and exits with code 3 — rejecting the query — if any flag is set or the role cannot be verified in `pg_roles`. A privileged session never executes a query, even a read-only one.
 - The script sets `SET TRANSACTION READ ONLY` before every query and uses PostgreSQL's single-statement extended protocol. Persistent `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`, `DROP`, transaction-control escapes, and other database writes are rejected.
+- **No hanging runs:** connections use a 10s libpq `connect_timeout`; the session `statement_timeout` (`--timeout`, default 30s) is set before the query and also bounds the privilege gate; and a wall-clock deadline (`--timeout` + 70s) aborts stuck connects, unresponsive servers, and slow result transfers with exit code 1.
 - Connection errors, query errors, and timeouts print descriptive messages to stderr and exit with code 1; validation rejections (query shape or privileges) exit with code 3.
 - Structured output goes to stdout only — diagnostics are always on stderr, so JSON/CSV output remains parseable.

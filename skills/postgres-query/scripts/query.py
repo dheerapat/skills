@@ -22,6 +22,7 @@ Errors and diagnostics go to stderr. Results go to stdout.
 import argparse
 import json
 import re
+import signal
 import sys
 import textwrap
 
@@ -41,6 +42,10 @@ except ImportError:
 
 from sqlglot import exp
 from sqlglot.errors import ParseError
+
+# Timeouts — a stuck query/connect must never stall the process indefinitely.
+CONNECT_TIMEOUT = 10  # seconds — libpq connect phase (TCP/SSL/auth)
+_WALLCLOCK_MARGIN = 70  # seconds — result-transfer buffer beyond the statement timeout
 
 
 # Node types whose presence anywhere in the statement means it is not read-only.
@@ -187,7 +192,7 @@ def parse_args(argv=None):
 
     # Behaviour
     parser.add_argument(
-        "--timeout", type=int, default=30, help="Query timeout in seconds (default: 30)"
+        "--timeout", type=int, default=30, help="Server-side statement timeout in seconds (default: 30)"
     )
     parser.add_argument(
         "--format",
@@ -205,9 +210,13 @@ def parse_args(argv=None):
 def build_conninfo(args):
     """Build connection parameters from explicit args. Returns None to let libpq use env vars."""
     if args.conn_string:
+        # Bounds the connect phase even for explicit URIs (respect a user-set value).
+        if "connect_timeout=" not in args.conn_string:
+            sep = "&" if "?" in args.conn_string else "?"
+            return f"{args.conn_string}{sep}connect_timeout={CONNECT_TIMEOUT}"
         return args.conn_string
 
-    conninfo = {}
+    conninfo = {"connect_timeout": CONNECT_TIMEOUT}
     for key in ("host", "port", "dbname", "user", "password", "sslmode"):
         val = getattr(args, key)
         if val is not None:
@@ -270,6 +279,13 @@ def format_table(columns, rows, out):
     print(sep, file=out)
 
 
+def _deadline(signum, frame):
+    """SIGALRM handler — abort with a clear error instead of hanging."""
+    raise TimeoutError(
+        f"overall script deadline exceeded (statement timeout + {_WALLCLOCK_MARGIN}s buffer)"
+    )
+
+
 def main():
     args = parse_args()
     conninfo = build_conninfo(args)
@@ -304,6 +320,16 @@ def main():
             safe = {k: v for k, v in conninfo.items() if k != "password"}
             print(f"Connecting with explicit params: {safe}", file=sys.stderr)
 
+    # Wall-clock ceiling: a hung connect, unresponsive server, or stalled result
+    # transfer must abort the process instead of hanging it.
+    deadline_armed = False
+    try:
+        signal.signal(signal.SIGALRM, _deadline)
+        signal.alarm(args.timeout + _WALLCLOCK_MARGIN)
+        deadline_armed = True
+    except (AttributeError, ValueError):
+        pass  # non-POSIX platform — server-side statement_timeout still bounds the query
+
     try:
         conn = (
             psycopg.connect(**conninfo)
@@ -316,12 +342,13 @@ def main():
 
     cur = conn.cursor()
     try:
+        # Session-level statement timeout before any query: bounds every statement,
+        # including the privilege gate below. Server cancels after args.timeout s.
+        cur.execute(
+            "SELECT set_config('statement_timeout', %s, false)", (str(args.timeout * 1000),)
+        )
         with conn.transaction():
             cur.execute("SET TRANSACTION READ ONLY")
-            cur.execute(
-                "SELECT set_config('statement_timeout', %s, true)",
-                (f"{args.timeout}s",),
-            )
 
             # Privilege gate: reject the query unless the session role is a plain
             # (non-superuser, non-privileged) read-only role. Deterministic — no exceptions.
@@ -362,6 +389,9 @@ def main():
         cur.close()
         conn.close()
         sys.exit(1)
+
+    if deadline_armed:
+        signal.alarm(0)  # connect + query are the hang risks; formatting is local CPU
 
     if args.verbose:
         print(f"Rows returned: {len(rows)}", file=sys.stderr)
