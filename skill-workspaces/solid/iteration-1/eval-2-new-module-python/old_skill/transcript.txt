@@ -1,0 +1,19 @@
+Done. `daily_digest.py` written + verified; answer in `response.md`.
+
+**Step 1 of 1: `work/daily_digest.py` (147 lines) reuses `notify.py` untouched.**
+
+Design (mapped to the skill's do/don't rules):
+- 3 one-method `Protocol` ports: `Clock`, `SignupCounter`, `MessageSender` → **I**, **D**
+- `DailyDigest` = wording/routing only; all deps injected → **S**
+- Concrete adapters `SystemClock`, `PostgresSignupCounter` fully substitute their ports → **L**
+- Swapping email→Slack or Postgres→MySQL = new class + one line in `build()`, no edits to working code → **O**
+- `build()` is the only place concretes appear; `main()` owns logging/exit code
+
+Verified with fakes (psycopg2 stubbed — not installed here):
+- `FixedClock(2025-09-17)` + counter 42 → mail `("ops@corp", "Signups 2025-09-16: 42", ...)`
+- Berlin tz window → params `2025-09-16 00:00+02:00` / `2025-09-17 00:00+02:00` (half-open, tz-aware, `%s`-bound)
+- `main()` → `0` on success, `1` with clear traceback when `PG_DSN` empty
+
+Lazy calls, flagged in the response: no adapter wrapper (`notify.send` already satisfies `MessageSender`), no argparse/`--skip-empty`, zero-signup days still mail so a missing digest is never ambiguous.
+
+**Next action (2 min):** confirm the table is `signups` with `created_at timestamptz` and that ops' "yesterday" is UTC, then install the cron line in `response.md`.

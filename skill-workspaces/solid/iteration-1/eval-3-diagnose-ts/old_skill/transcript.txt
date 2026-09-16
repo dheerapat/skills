@@ -1,0 +1,50 @@
+Wrote full diagnosis to `/home/dheeto/skills/skill-workspaces/solid/iteration-1/eval-3-diagnose-ts/old_skill/response.md` (`src.ts` untouched — no `references/` dir exists in that skill snapshot, so SKILL.md was the only instruction file).
+
+# SOLID review — `src.ts`
+
+All five rules violated. 13 findings. Severity: 🔴 breaks at runtime · 🟡 costs you on next change · ⚪ smell
+
+## L — Liskov (worst area)
+
+1. 🔴 **`LegacyAdyenProvider` throws on 4/6 methods** (`:23-26`) — `refund`/`capturePreauth`/`voidPreauth`/`storeCard` promise `Promise<Receipt>`/`Promise<string>` and throw instead. Textbook Penguin/Bird: not substitutable, compiler can't warn the caller. Line 1 says two consumers share this file, so someone picks the wrong provider. *Fix: don't declare `implements PaymentProvider`; Legacy Adyen implements only what it has.*
+2. 🔴 **`verifyCard` returns hardcoded `true`** (`:27`) — worse than throwing, it's silent. Base postcondition is "true ⟺ verified"; here nothing was checked. Callers get a security lie. *Fix: remove the capability from the type. Never fake success.*
+3. 🔴 **`verifyCard` result discarded, after the charge** (`:61` runs after `:58`) — ignores the boolean and violates the ordering the name implies. Combined with #2, the batch job sails through on an unverified card.
+4. 🟡 **`StripeProvider` params are implicit `any`** (`:13-18`) — structural typing means the compiler isn't checking arity/order at all; a provider with swapped `(currency, amount)` compiles. File won't build under `noImplicitAny`.
+
+## I — Interface Segregation
+
+5. 🔴 **`PaymentProvider` is a 6-method god interface** (`:3-10`) — charging + refunds + preauth + vault + verification. `Checkout` needs `charge`. This fatness *creates* L1/L2: an implementer supporting 2 of 6 must pretend to support 6. *Fix: split into `Charger`, `Refunder`, `Preauthorizer`, `CardVault`, `CardVerifier`; Stripe = intersection type. Fix this first — it makes the LSP failures unrepresentable.*
+6. ⚪ **`Receipt`/`Cart`/`CartItem` undefined; money as bare `number`** — no branded types, cent-vs-dollar and currency mismatch uncaught.
+
+## D — Dependency Inversion
+
+7. 🔴 **`private provider = new StripeProvider()`** (`:52`) — the class that must be swappable per consumer can't be swapped; tests hit live Stripe.
+8. 🔴 **`TaxEngine` hardwires `fetch` to a hostname** (`:43-46`) — domain logic depending on concrete network transport; untestable, env-locked, no way to retarget. *Fix: inject a `TaxAuditLog` port.*
+9. 🟡 **`new TaxEngine(process.env.REGION!)`** (`:53`) — use-case class reads env, `!` assertion hands `"undefined"` to the region check, detonates at `:38` on first request. Validate config once at boot.
+10. 🟡 **Abstraction is provider-shaped, not consumer-shaped** — looks like DIP, is really Stripe's full surface behind a veneer. Same fix as #5.
+
+## O — Open/Closed
+
+11. 🟡 **Region if/else chain with terminal `throw`** (`:35-38`) — every new country or VAT change edits the file the batch job depends on; `US → 0` is already a bolted-on special case. *Fix: injected `TaxPolicy` (data row or subclass).*
+12. 🟡 **No seam for provider selection** — "batch runs on Adyen" requires editing `Checkout`, the hottest path.
+13. ⚪ **`totalWithTax(net, items)` ignores `items`** (`:33`) — signature promises item-level taxation the body doesn't do. Delete the param or implement it behind #11.
+
+## S — Single Responsibility
+
+- 🟡 **`TaxEngine` = two jobs**: tax rules (`:33-40`) + audit transport (`:42-48`). No shared state. Split.
+- 🟡 **`Checkout` = four jobs**: orchestration, provider construction, env reading, and an inline verification policy. Only the first is its job.
+- ⚪ **`if (cart.items.length > 0)`** (`:60`) — unnamed load-bearing rule; only "works" today because #2 makes verify a no-op. Validation guard or fraud policy — decide.
+- 🟡 **Audit awaited after the money moved** (`:58-59`) — if the POST fails, `checkout()` rejects *after* the charge succeeded and the receipt is lost. Tangled responsibilities; make audit either mandatory-before-charge or best-effort-non-throwing.
+
+## Fix order
+
+| Step | What | Cost |
+|---|---|---|
+| 1 | Split `PaymentProvider` into capability interfaces | mechanical |
+| 2 | Constructor-inject `Charger`/`TaxCalculator`/`TaxAuditLog`; 2 composition roots (web, batch) | mechanical, ~half day with tests |
+| 3 | Verification contract: verify before charge, branch on result, named policy | **needs a product answer** |
+| 4 | Split `TaxEngine`, `TaxPolicy` for regions | |
+| 5 | Audit-failure semantics | |
+| 6 | Type hygiene: annotate params, branded `Money`/`Receipt`, `noImplicitAny` | |
+
+**Next action (2 min):** open the review with `src.ts:21-28` and `:52` — the lying `verifyCard` plus the hardcoded provider are the two blocks I would not approve as-is, and steps 1-2 unblock the rest.

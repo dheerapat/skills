@@ -1,0 +1,9 @@
+You have a skill to use. Read /home/dheeto/skills/skills/solid/SKILL.md first, and read any file under /home/dheeto/skills/skills/solid/references/ that it tells you to read. Then do the task following it.
+
+Work in the directory /home/dheeto/skills/skill-workspaces/solid/iteration-1/eval-2-new-module-python/with_skill/work — create/edit files there only.
+When finished, write your complete final answer to the user as /home/dheeto/skills/skill-workspaces/solid/iteration-1/eval-2-new-module-python/with_skill/response.md
+
+TASK:
+Read daily_digest_context.md and notify.py. Write daily_digest.py that mails ops@corp the number of
+signups from yesterday, run once a day by cron. Follow SOLID principles — this repo cares about that,
+and the last person who contributed here got a lot of design review comments.

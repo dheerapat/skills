@@ -1,0 +1,16 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-1-refactor-python",
+  "prompt": "invoice_sync.py in this directory is a mess \u2014 it does too much and I'm scared to touch it. Refactor it so it follows SOLID principles. Behavior must stay identical. Don't touch anything else in the repo.",
+  "assertions": [
+    "behavior-preserved: same public entry (fmt + dry_run args, returns row count, prints the same summary line)",
+    "sql-and-smtp-decoupled: no single class both issues the invoices UPDATE and sends mail",
+    "no-string-dispatch-chain: the refactored file has no if/elif chain over format string literals",
+    "every-abstraction-justified: each new Protocol/ABC/interface has >=2 implementations in the output or the response states the seam it serves",
+    "secrets-not-replicated: 'hunter2' and the SMTP password are not still hardcoded literals in the refactored code",
+    "no-new-third-party-deps: imports limited to stdlib plus psycopg2/smtplib already used",
+    "diagnosis-names-principles: response states which letter each change serves",
+    "declined-work-reported: response names at least one thing it deliberately did not abstract"
+  ],
+  "expected_output": "A refactored module where query, formatting, mailing, and status update live in separable units; the fmt if/elif chain is replaced by an extensible table; SMTP/DB constructed at the edge and passed in; behavior preserved; any abstraction introduced is justified by >=2 implementations or an explicit test seam; secrets no longer duplicated as literals."
+}

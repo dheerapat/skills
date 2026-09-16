@@ -1,0 +1,2 @@
+src.ts is up for design review. Walk me through every SOLID violation you can find in it, and what you'd
+do about each. Don't edit the file — I want the diagnosis before anyone touches code.

@@ -1,0 +1,8 @@
+You have a skill to use. Read /home/dheeto/skills/skills/solid/SKILL.md first, and read any file under /home/dheeto/skills/skills/solid/references/ that it tells you to read. Then do the task following it.
+
+Work in the directory /home/dheeto/skills/skill-workspaces/solid/iteration-1/eval-1-refactor-python/with_skill/work — create/edit files there only.
+When finished, write your complete final answer to the user as /home/dheeto/skills/skill-workspaces/solid/iteration-1/eval-1-refactor-python/with_skill/response.md
+
+TASK:
+invoice_sync.py in this directory is a mess — it does too much and I'm scared to touch it.
+Refactor it so it follows SOLID principles. Behavior must stay identical. Don't touch anything else in the repo.

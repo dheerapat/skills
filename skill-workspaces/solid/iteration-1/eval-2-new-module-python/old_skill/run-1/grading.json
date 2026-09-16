@@ -1,0 +1,77 @@
+{
+  "expectations": [
+    {
+      "text": "reuses-existing-notifier: daily_digest.py imports notify.send instead of reimplementing SMTP",
+      "passed": true,
+      "evidence": "`import notify  # existing, working module -- reused as-is`; the module itself satisfies its Mailer protocol."
+    },
+    {
+      "text": "dsn-from-environment: uses os.environ[\"PG_DSN\"] rather than a hardcoded connection string",
+      "passed": true,
+      "evidence": "connect_from_env() reads os.environ.get('PG_DSN') and raises if unset."
+    },
+    {
+      "text": "no-speculative-abstraction: no ABC/abstractmethod/Protocol/interface hierarchy introduced, or the response justifies one by naming >=2 real implementations",
+      "passed": false,
+      "evidence": "3 Protocols (Clock, SignupCounter, MessageSender) with one implementation each, plus SystemClock, PostgresSignupCounter, DailyDigest, build(). Reproduced across two independent samples (5 'Protocol' hits in each) - not a fluke."
+    },
+    {
+      "text": "declined-seam-stated: response says in words why no abstraction was added",
+      "passed": false,
+      "evidence": "Declines only a wrapper class and argparse flags; the abstractions are justified rather than declined: 'D - DailyDigest depends on Clock/SignupCounter/MessageSender Protocols ... That's what makes it testable with fakes.'"
+    },
+    {
+      "text": "cron-entry-point: has a __main__ guard or equivalent and needs no interactive input",
+      "passed": true,
+      "evidence": "`if __name__ == '__main__': sys.exit(main())`, --date backfill flag, logging to stderr, non-zero exit on failure."
+    },
+    {
+      "text": "parameterized-or-safe-sql: no f-string interpolation of external values into SQL",
+      "passed": true,
+      "evidence": "_COUNT_SQL constant with positional %s params; comment warns against `WHERE date(created_at) = %s`."
+    },
+    {
+      "text": "yesterday-computed-safely: date arithmetic uses date/datetime with an explicit now() or DB-side truncation, not a hand-rolled string",
+      "passed": true,
+      "evidence": "`day = self._clock.today() - YESTERDAY` behind an injectable Clock; half-open bounds."
+    },
+    {
+      "text": "file-actually-written: daily_digest.py exists in the work directory",
+      "passed": true,
+      "evidence": "daily_digest.py (4390 B) in the work dir."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 2,
+    "total": 8,
+    "pass_rate": 0.75
+  },
+  "execution_metrics": {
+    "output_chars": 14547,
+    "files_created": [
+      "daily_digest.py",
+      "daily_digest_context.md",
+      "notify.py",
+      "response.md",
+      "transcript.txt"
+    ],
+    "errors_encountered": 0
+  },
+  "timing": {
+    "total_duration_seconds": 128
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "secrets-not-replicated",
+        "reason": "Fails for both configs and conflicts with the prompt's own 'behaviour must stay identical' constraint - it measures a scope decision, not skill quality. Drop it or reword as 'flagged for a separate change'."
+      },
+      {
+        "assertion": "declined-work-reported",
+        "reason": "Passes for the old skill too because it accepts any 'deliberately not done' text. Should require a declined *abstraction* specifically."
+      }
+    ],
+    "overall": "eval-1's assertions are mostly non-discriminating; eval-2 and eval-3 carry the signal."
+  }
+}

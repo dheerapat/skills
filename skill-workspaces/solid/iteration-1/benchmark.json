@@ -1,0 +1,421 @@
+{
+  "metadata": {
+    "skill_name": "solid",
+    "skill_path": "/home/dheeto/skills/skills/solid",
+    "executor_model": "openrouter qwen/qwen3.8-flash (thinking=high), driven by `pi -p`",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-09-16T19:38:02Z",
+    "evals_run": [
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 6,
+        "failed": 2,
+        "total": 8,
+        "time_seconds": 181,
+        "tokens": 27151,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "behavior-preserved: same public entry (fmt + dry_run args, returns row count, prints the same summary line)",
+          "passed": true,
+          "evidence": "Kept `InvoiceSyncManager(...).run(fmt, dry_run)` and ran a differential harness: old vs new side by side over 3 formats x dry_run on/off x 3 bad formats -> 'RESULT: ALL IDENTICAL (9/9 cases)' including order of side effects."
+        },
+        {
+          "text": "sql-and-smtp-decoupled: no single class both issues the invoices UPDATE and sends mail",
+          "passed": true,
+          "evidence": "PostgresInvoiceRepository = SQL only; SmtpInvoiceMailSender = delivery only; InvoiceSyncManager orchestrates through injected Protocols."
+        },
+        {
+          "text": "no-string-dispatch-chain: the refactored file has no if/elif chain over format string literals",
+          "passed": true,
+          "evidence": "if/elif chain replaced by ReporterRegistry.for_format()."
+        },
+        {
+          "text": "every-abstraction-justified: each new Protocol/ABC/interface has >=2 implementations in the output or the response states the seam it serves",
+          "passed": false,
+          "evidence": "3 Protocols (InvoiceRepository, InvoiceReporter, InvoiceMailSender) each with exactly one implementation, plus `ReporterRegistry.register()` for three built-in formats and an injected `printer: Callable = print`. Justification offered is the principle name ('[I/D]'), never a second implementation or a named test double."
+        },
+        {
+          "text": "secrets-not-replicated: 'hunter2' and the SMTP password are not still hardcoded literals in the refactored code",
+          "passed": false,
+          "evidence": "Kept as literal constructor defaults, deliberately: 'No config/secret externalisation ... you said behaviour must not change' + flagged for a ticket. Graded fail per the wording; the wording is the problem."
+        },
+        {
+          "text": "no-new-third-party-deps: imports limited to stdlib plus psycopg2/smtplib already used",
+          "passed": true,
+          "evidence": "stdlib + psycopg2 only."
+        },
+        {
+          "text": "diagnosis-names-principles: response states which letter each change serves",
+          "passed": true,
+          "evidence": "'Rule by rule' section walks S/O/L/I/D by name; closes 'All five rules violated.'"
+        },
+        {
+          "text": "declined-work-reported: response names at least one thing it deliberately did not abstract",
+          "passed": true,
+          "evidence": "'Deliberately *not* done (scope discipline)' - though every item there is scope (secrets, CLI, logging); no abstraction was declined."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 6,
+        "failed": 2,
+        "total": 8,
+        "time_seconds": 128,
+        "tokens": 14547,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "reuses-existing-notifier: daily_digest.py imports notify.send instead of reimplementing SMTP",
+          "passed": true,
+          "evidence": "`import notify  # existing, working module -- reused as-is`; the module itself satisfies its Mailer protocol."
+        },
+        {
+          "text": "dsn-from-environment: uses os.environ[\"PG_DSN\"] rather than a hardcoded connection string",
+          "passed": true,
+          "evidence": "connect_from_env() reads os.environ.get('PG_DSN') and raises if unset."
+        },
+        {
+          "text": "no-speculative-abstraction: no ABC/abstractmethod/Protocol/interface hierarchy introduced, or the response justifies one by naming >=2 real implementations",
+          "passed": false,
+          "evidence": "3 Protocols (Clock, SignupCounter, MessageSender) with one implementation each, plus SystemClock, PostgresSignupCounter, DailyDigest, build(). Reproduced across two independent samples (5 'Protocol' hits in each) - not a fluke."
+        },
+        {
+          "text": "declined-seam-stated: response says in words why no abstraction was added",
+          "passed": false,
+          "evidence": "Declines only a wrapper class and argparse flags; the abstractions are justified rather than declined: 'D - DailyDigest depends on Clock/SignupCounter/MessageSender Protocols ... That's what makes it testable with fakes.'"
+        },
+        {
+          "text": "cron-entry-point: has a __main__ guard or equivalent and needs no interactive input",
+          "passed": true,
+          "evidence": "`if __name__ == '__main__': sys.exit(main())`, --date backfill flag, logging to stderr, non-zero exit on failure."
+        },
+        {
+          "text": "parameterized-or-safe-sql: no f-string interpolation of external values into SQL",
+          "passed": true,
+          "evidence": "_COUNT_SQL constant with positional %s params; comment warns against `WHERE date(created_at) = %s`."
+        },
+        {
+          "text": "yesterday-computed-safely: date arithmetic uses date/datetime with an explicit now() or DB-side truncation, not a hand-rolled string",
+          "passed": true,
+          "evidence": "`day = self._clock.today() - YESTERDAY` behind an injectable Clock; half-open bounds."
+        },
+        {
+          "text": "file-actually-written: daily_digest.py exists in the work directory",
+          "passed": true,
+          "evidence": "daily_digest.py (4390 B) in the work dir."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 6,
+        "failed": 2,
+        "total": 8,
+        "time_seconds": 88,
+        "tokens": 18860,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "file-unmodified: src.ts byte-identical to the input fixture",
+          "passed": true,
+          "evidence": "outputs/src.ts byte-identical to the fixture."
+        },
+        {
+          "text": "found-interface-segregation: names PaymentProvider as too wide and LegacyAdyen's throws as the evidence",
+          "passed": true,
+          "evidence": "'I1 - PaymentProvider is a 6-method god interface'; correctly diagnoses that the fatness is what creates L1/L2."
+        },
+        {
+          "text": "found-liskov-break: calls out verifyCard always returning true and/or the raising stubs as substitutability failures",
+          "passed": true,
+          "evidence": "'L2 - verifyCard returns hardcoded true ... Worse than L1 because it's silent'; L3 additionally finds the discarded result checked after the charge."
+        },
+        {
+          "text": "found-dependency-inversion: calls out Checkout constructing StripeProvider and TaxEngine calling fetch directly",
+          "passed": true,
+          "evidence": "'D1 - Checkout hardwires the concrete provider'; D2/D3 cover env reading and the raw fetch."
+        },
+        {
+          "text": "found-single-responsibility: calls out TaxEngine owning both tax math and audit-log HTTP",
+          "passed": true,
+          "evidence": "'S1 - TaxEngine has two reasons to change' (rules vs transport); S2 counts four for Checkout."
+        },
+        {
+          "text": "open-closed-honest: addresses the region if-chain and states whether that set is actually open before recommending a change",
+          "passed": false,
+          "evidence": "O1 asserts the chain violates O and prescribes `interface TaxPolicy { rateFor(...) }` injected into the calculator, 'Adding per-item exemption handling = one new policy class', with no evidence the region set is open. O3 then reads the ignored `items` param as proof that 'the real design is a strategy list over items'. 7 `interface X` declarations proposed vs 3."
+        },
+        {
+          "text": "recommends-against-something: at least one explicit 'don't abstract this' or 'leave as is' recommendation",
+          "passed": false,
+          "evidence": "The single YAGNI mention (O3) is about a parameter, and the fix order immediately adds the TaxPolicy interface anyway. Verdict is 'All five rules violated' with a 6-step plan including branded Money/Receipt types nobody asked about."
+        },
+        {
+          "text": "grounded-in-symbols: findings quote real symbol names from src.ts",
+          "passed": true,
+          "evidence": "Same eight fixture symbols quoted with src.ts:line references."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.75,
+        "passed": 6,
+        "failed": 2,
+        "total": 8,
+        "time_seconds": 263,
+        "tokens": 47072,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "behavior-preserved: same public entry (fmt + dry_run args, returns row count, prints the same summary line)",
+          "passed": false,
+          "evidence": "Print line, return value and ValueError('unsupported format') preserved, but the public entry point changed: `InvoiceSyncManager().run(fmt, dry_run)` -> module funcs `run_invoice_sync(fmt, dry_run, dsn)` / `sync_invoices(repo, notify, ...)`. Disclosed in the response ('InvoiceSyncManager is gone ... grep is clean'), so callers break knowingly rather than silently - but they break."
+        },
+        {
+          "text": "sql-and-smtp-decoupled: no single class both issues the invoices UPDATE and sends mail",
+          "passed": true,
+          "evidence": "invoice_repository.py holds all SQL, invoice_mail.py all SMTP, neither imports the other; sync_invoices() reaches both through parameters."
+        },
+        {
+          "text": "no-string-dispatch-chain: the refactored file has no if/elif chain over format string literals",
+          "passed": true,
+          "evidence": "regex `(elif|if)\\s+fmt\\s*==` finds no match; FORMATTERS dict + render() instead."
+        },
+        {
+          "text": "every-abstraction-justified: each new Protocol/ABC/interface has >=2 implementations in the output or the response states the seam it serves",
+          "passed": true,
+          "evidence": "Zero Protocol/ABC added. Seam is `Notifier = Callable[[str], None]` (rung 1); the two classes are concrete adapters, not interfaces."
+        },
+        {
+          "text": "secrets-not-replicated: 'hunter2' and the SMTP password are not still hardcoded literals in the refactored code",
+          "passed": false,
+          "evidence": "'hunter2' and 'apassword' still appear as literals (promoted to module constants in invoice_sync.py / invoice_mail.py). Same as the baseline run - see eval_feedback."
+        },
+        {
+          "text": "no-new-third-party-deps: imports limited to stdlib plus psycopg2/smtplib already used",
+          "passed": true,
+          "evidence": "imports outside stdlib: psycopg2 (lazy, already present) only."
+        },
+        {
+          "text": "diagnosis-names-principles: response states which letter each change serves",
+          "passed": true,
+          "evidence": "'## Diagnosis' maps S (four reasons to change), O (string-keyed chain), D (psycopg2/smtplib built inline) and states 'L / I - no matches. No subtypes, no interfaces. Nothing done for them.'"
+        },
+        {
+          "text": "declined-work-reported: response names at least one thing it deliberately did not abstract",
+          "passed": true,
+          "evidence": "'Deliberately not done - No Protocol/ABC/factory. Notifier and the repository each have one implementation plus a duck-typed test double; an interface would be a pass-through.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 108,
+        "tokens": 9996,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "reuses-existing-notifier: daily_digest.py imports notify.send instead of reimplementing SMTP",
+          "passed": true,
+          "evidence": "`import notify`, calls `notify.send(RECIPIENT, subject, body)`; 'notify.py untouched'; smtplib never appears."
+        },
+        {
+          "text": "dsn-from-environment: uses os.environ[\"PG_DSN\"] rather than a hardcoded connection string",
+          "passed": true,
+          "evidence": "`psycopg2.connect(os.environ[\"PG_DSN\"])` inside main()."
+        },
+        {
+          "text": "no-speculative-abstraction: no ABC/abstractmethod/Protocol/interface hierarchy introduced, or the response justifies one by naming >=2 real implementations",
+          "passed": true,
+          "evidence": "Zero Protocol/ABC/interface added: four module-level functions, `digest_for(conn, today)` taking the clock and the connection as arguments. Test doubles are plain classes in the test file."
+        },
+        {
+          "text": "declined-seam-stated: response says in words why no abstraction was added",
+          "passed": true,
+          "evidence": "'Not done: no Mailer/Database Protocol, no factory, no registry. notify.send is already the repo's single mail implementation with one caller - an interface for it would be indirection that answers nothing. Add it when a second sender ... actually lands.' Plus 'Seam: rung 1 - parameters ... Zero new types.'"
+        },
+        {
+          "text": "cron-entry-point: has a __main__ guard or equivalent and needs no interactive input",
+          "passed": true,
+          "evidence": "`if __name__ == '__main__': main()`, documented crontab line, logging/traceback to stderr for cron MAILTO, no interactive input."
+        },
+        {
+          "text": "parameterized-or-safe-sql: no f-string interpolation of external values into SQL",
+          "passed": true,
+          "evidence": "COUNT_SQL is a constant with `%s` bounds; cur.execute(COUNT_SQL, (day, day + timedelta(days=1)))."
+        },
+        {
+          "text": "yesterday-computed-safely: date arithmetic uses date/datetime with an explicit now() or DB-side truncation, not a hand-rolled string",
+          "passed": true,
+          "evidence": "`yesterday = today - timedelta(days=1)` with `today` injected by main(); half-open range comment explains index use and Postgres tz widening."
+        },
+        {
+          "text": "file-actually-written: daily_digest.py exists in the work directory",
+          "passed": true,
+          "evidence": "daily_digest.py (2193 B) plus test_daily_digest.py in the work dir."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 160,
+        "tokens": 16518,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "file-unmodified: src.ts byte-identical to the input fixture",
+          "passed": true,
+          "evidence": "outputs/src.ts byte-identical to the fixture."
+        },
+        {
+          "text": "found-interface-segregation: names PaymentProvider as too wide and LegacyAdyen's throws as the evidence",
+          "passed": true,
+          "evidence": "'#1 I - PaymentProvider is sized to the vendor's capability list, not to any client (L3-10)'; evidence: Checkout touches 2 of 6, LegacyAdyen throws on 4 of 6, two consumers with disjoint needs."
+        },
+        {
+          "text": "found-liskov-break: calls out verifyCard always returning true and/or the raising stubs as substitutability failures",
+          "passed": true,
+          "evidence": "'#2 L - LegacyAdyenProvider breaks substitutability twice'; names the always-true verifyCard as the quiet, silent postcondition break and notes charge() runs after it so the policy fails open."
+        },
+        {
+          "text": "found-dependency-inversion: calls out Checkout constructing StripeProvider and TaxEngine calling fetch directly",
+          "passed": true,
+          "evidence": "'#3 D - Checkout constructs its own vendor client and reads env (L52-53)'; '#4 D - raw fetch hardcoded inside TaxEngine.logTaxEvent (L42-48)'."
+        },
+        {
+          "text": "found-single-responsibility: calls out TaxEngine owning both tax math and audit-log HTTP",
+          "passed": true,
+          "evidence": "'#5 S - TaxEngine is two jobs wearing one name' - tax law vs audit transport, disjoint callers, 'the and test'."
+        },
+        {
+          "text": "open-closed-honest: addresses the region if-chain and states whether that set is actually open before recommending a change",
+          "passed": true,
+          "evidence": "'#6 O - the region if/else chain: real, but the weakest finding ... O requires evidence the set keeps growing - a branch per new variant in history - not a hunch ... do not build ITaxStrategy + per-region classes + a factory. That is the textbook over-application: four types replacing one number.' Prescribes a union type + Record, i.e. keeps it closed."
+        },
+        {
+          "text": "recommends-against-something: at least one explicit 'don't abstract this' or 'leave as is' recommendation",
+          "passed": true,
+          "evidence": "Section '## Seams I'd deliberately decline (and why - reviewer needs this to check the decision)'; also 'Do not fix it by adding supportsRefund(): boolean flags' and 'no mocking library, no ITaxEngineStrategy'."
+        },
+        {
+          "text": "grounded-in-symbols: findings quote real symbol names from src.ts",
+          "passed": true,
+          "evidence": "All eight fixture symbols quoted (PaymentProvider, LegacyAdyenProvider, verifyCard, TaxEngine, StripeProvider, Checkout, logTaxEvent, totalWithTax) with line numbers."
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "old_skill": {
+      "pass_rate": {
+        "mean": 0.75,
+        "stddev": 0.0,
+        "min": 0.75,
+        "max": 0.75
+      },
+      "time_seconds": {
+        "mean": 132.3333,
+        "stddev": 46.6512,
+        "min": 88,
+        "max": 181
+      },
+      "tokens": {
+        "mean": 20186.0,
+        "stddev": 6405.7717,
+        "min": 14547,
+        "max": 27151
+      }
+    },
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.9167,
+        "stddev": 0.1443,
+        "min": 0.75,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 177.0,
+        "stddev": 78.886,
+        "min": 108,
+        "max": 263
+      },
+      "tokens": {
+        "mean": 24528.6667,
+        "stddev": 19793.5729,
+        "min": 9996,
+        "max": 47072
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.17",
+      "time_seconds": "+44.7s",
+      "tokens": "+4343"
+    }
+  },
+  "notes": [
+    "DELTA DIRECTION: the aggregation script diffs configs in alphabetical order (old_skill - with_skill); corrected here to with_skill - old_skill.",
+    "'tokens' in this benchmark is output_chars, not real token counts - `pi -p` does not report usage on stdout. Wall time is the reliable cost signal.",
+    "NON-DISCRIMINATING: eval-1 scores 6/8 for BOTH skills, and two of its assertions ('secrets-not-replicated', 'declined-work-reported') pass/fail identically. eval-1's fixture is a genuinely smelly file where both skills land in the same place; the signal lives in eval-2 (greenfield, 8/8 vs 6/8) and eval-3 (review, 8/8 vs 6/8).",
+    "WHERE THE REAL DIFFERENCE IS: abstraction tax. eval-2 new=0 Protocols vs old=3 Protocols each with a single implementation (reproduced across two independent samples). eval-3 new proposed 3 `interface X` vs old 7, and old prescribed an injected TaxPolicy strategy for a closed 3-region table while new said 'four types replacing one number - do not' and kept a union+Record.",
+    "WHERE THE OLD SKILL WON: eval-1 behavior preservation. old_skill kept InvoiceSyncManager.run()'s signature and ran a real differential harness (9/9 identical, side-effect order included); the new skill silently renamed the entry point to run_invoice_sync() and split one file into four. The new skill's own Step 4.2 covers this and the model did not follow it - the rule is too weak and competes with 'behaviour identical' ambiguity.",
+    "HIGH-VARIANCE: eval-2 old_skill output size 7853B -> 4390B across two samples (same three Protocols both times). eval-1 with_skill took 263s vs old 181s; the new skill's process (gate, ladder, report, tests) costs ~45% more wall time on average (177s vs 132s) for +17pp pass rate.",
+    "FLAKY INFRA: both eval-2 runs lost their final response to an upstream 429 on the first attempt and were re-run serially; eval-1/eval-3 were clean."
+  ]
+}

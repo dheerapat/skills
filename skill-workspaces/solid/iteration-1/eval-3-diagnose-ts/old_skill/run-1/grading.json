@@ -1,0 +1,75 @@
+{
+  "expectations": [
+    {
+      "text": "file-unmodified: src.ts byte-identical to the input fixture",
+      "passed": true,
+      "evidence": "outputs/src.ts byte-identical to the fixture."
+    },
+    {
+      "text": "found-interface-segregation: names PaymentProvider as too wide and LegacyAdyen's throws as the evidence",
+      "passed": true,
+      "evidence": "'I1 - PaymentProvider is a 6-method god interface'; correctly diagnoses that the fatness is what creates L1/L2."
+    },
+    {
+      "text": "found-liskov-break: calls out verifyCard always returning true and/or the raising stubs as substitutability failures",
+      "passed": true,
+      "evidence": "'L2 - verifyCard returns hardcoded true ... Worse than L1 because it's silent'; L3 additionally finds the discarded result checked after the charge."
+    },
+    {
+      "text": "found-dependency-inversion: calls out Checkout constructing StripeProvider and TaxEngine calling fetch directly",
+      "passed": true,
+      "evidence": "'D1 - Checkout hardwires the concrete provider'; D2/D3 cover env reading and the raw fetch."
+    },
+    {
+      "text": "found-single-responsibility: calls out TaxEngine owning both tax math and audit-log HTTP",
+      "passed": true,
+      "evidence": "'S1 - TaxEngine has two reasons to change' (rules vs transport); S2 counts four for Checkout."
+    },
+    {
+      "text": "open-closed-honest: addresses the region if-chain and states whether that set is actually open before recommending a change",
+      "passed": false,
+      "evidence": "O1 asserts the chain violates O and prescribes `interface TaxPolicy { rateFor(...) }` injected into the calculator, 'Adding per-item exemption handling = one new policy class', with no evidence the region set is open. O3 then reads the ignored `items` param as proof that 'the real design is a strategy list over items'. 7 `interface X` declarations proposed vs 3."
+    },
+    {
+      "text": "recommends-against-something: at least one explicit 'don't abstract this' or 'leave as is' recommendation",
+      "passed": false,
+      "evidence": "The single YAGNI mention (O3) is about a parameter, and the fix order immediately adds the TaxPolicy interface anyway. Verdict is 'All five rules violated' with a 6-step plan including branded Money/Receipt types nobody asked about."
+    },
+    {
+      "text": "grounded-in-symbols: findings quote real symbol names from src.ts",
+      "passed": true,
+      "evidence": "Same eight fixture symbols quoted with src.ts:line references."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 2,
+    "total": 8,
+    "pass_rate": 0.75
+  },
+  "execution_metrics": {
+    "output_chars": 18860,
+    "files_created": [
+      "response.md",
+      "src.ts",
+      "transcript.txt"
+    ],
+    "errors_encountered": 0
+  },
+  "timing": {
+    "total_duration_seconds": 88
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "secrets-not-replicated",
+        "reason": "Fails for both configs and conflicts with the prompt's own 'behaviour must stay identical' constraint - it measures a scope decision, not skill quality. Drop it or reword as 'flagged for a separate change'."
+      },
+      {
+        "assertion": "declined-work-reported",
+        "reason": "Passes for the old skill too because it accepts any 'deliberately not done' text. Should require a declined *abstraction* specifically."
+      }
+    ],
+    "overall": "eval-1's assertions are mostly non-discriminating; eval-2 and eval-3 carry the signal."
+  }
+}

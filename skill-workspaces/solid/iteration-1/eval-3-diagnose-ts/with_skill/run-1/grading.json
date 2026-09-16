@@ -1,0 +1,75 @@
+{
+  "expectations": [
+    {
+      "text": "file-unmodified: src.ts byte-identical to the input fixture",
+      "passed": true,
+      "evidence": "outputs/src.ts byte-identical to the fixture."
+    },
+    {
+      "text": "found-interface-segregation: names PaymentProvider as too wide and LegacyAdyen's throws as the evidence",
+      "passed": true,
+      "evidence": "'#1 I - PaymentProvider is sized to the vendor's capability list, not to any client (L3-10)'; evidence: Checkout touches 2 of 6, LegacyAdyen throws on 4 of 6, two consumers with disjoint needs."
+    },
+    {
+      "text": "found-liskov-break: calls out verifyCard always returning true and/or the raising stubs as substitutability failures",
+      "passed": true,
+      "evidence": "'#2 L - LegacyAdyenProvider breaks substitutability twice'; names the always-true verifyCard as the quiet, silent postcondition break and notes charge() runs after it so the policy fails open."
+    },
+    {
+      "text": "found-dependency-inversion: calls out Checkout constructing StripeProvider and TaxEngine calling fetch directly",
+      "passed": true,
+      "evidence": "'#3 D - Checkout constructs its own vendor client and reads env (L52-53)'; '#4 D - raw fetch hardcoded inside TaxEngine.logTaxEvent (L42-48)'."
+    },
+    {
+      "text": "found-single-responsibility: calls out TaxEngine owning both tax math and audit-log HTTP",
+      "passed": true,
+      "evidence": "'#5 S - TaxEngine is two jobs wearing one name' - tax law vs audit transport, disjoint callers, 'the and test'."
+    },
+    {
+      "text": "open-closed-honest: addresses the region if-chain and states whether that set is actually open before recommending a change",
+      "passed": true,
+      "evidence": "'#6 O - the region if/else chain: real, but the weakest finding ... O requires evidence the set keeps growing - a branch per new variant in history - not a hunch ... do not build ITaxStrategy + per-region classes + a factory. That is the textbook over-application: four types replacing one number.' Prescribes a union type + Record, i.e. keeps it closed."
+    },
+    {
+      "text": "recommends-against-something: at least one explicit 'don't abstract this' or 'leave as is' recommendation",
+      "passed": true,
+      "evidence": "Section '## Seams I'd deliberately decline (and why - reviewer needs this to check the decision)'; also 'Do not fix it by adding supportsRefund(): boolean flags' and 'no mocking library, no ITaxEngineStrategy'."
+    },
+    {
+      "text": "grounded-in-symbols: findings quote real symbol names from src.ts",
+      "passed": true,
+      "evidence": "All eight fixture symbols quoted (PaymentProvider, LegacyAdyenProvider, verifyCard, TaxEngine, StripeProvider, Checkout, logTaxEvent, totalWithTax) with line numbers."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 16518,
+    "files_created": [
+      "response.md",
+      "src.ts",
+      "transcript.txt"
+    ],
+    "errors_encountered": 0
+  },
+  "timing": {
+    "total_duration_seconds": 160
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "secrets-not-replicated",
+        "reason": "Fails for both configs and conflicts with the prompt's own 'behaviour must stay identical' constraint - it measures a scope decision, not skill quality. Drop it or reword as 'flagged for a separate change'."
+      },
+      {
+        "assertion": "declined-work-reported",
+        "reason": "Passes for the old skill too because it accepts any 'deliberately not done' text. Should require a declined *abstraction* specifically."
+      }
+    ],
+    "overall": "eval-1's assertions are mostly non-discriminating; eval-2 and eval-3 carry the signal."
+  }
+}

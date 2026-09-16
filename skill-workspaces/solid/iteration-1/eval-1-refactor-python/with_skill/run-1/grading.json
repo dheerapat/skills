@@ -1,0 +1,79 @@
+{
+  "expectations": [
+    {
+      "text": "behavior-preserved: same public entry (fmt + dry_run args, returns row count, prints the same summary line)",
+      "passed": false,
+      "evidence": "Print line, return value and ValueError('unsupported format') preserved, but the public entry point changed: `InvoiceSyncManager().run(fmt, dry_run)` -> module funcs `run_invoice_sync(fmt, dry_run, dsn)` / `sync_invoices(repo, notify, ...)`. Disclosed in the response ('InvoiceSyncManager is gone ... grep is clean'), so callers break knowingly rather than silently - but they break."
+    },
+    {
+      "text": "sql-and-smtp-decoupled: no single class both issues the invoices UPDATE and sends mail",
+      "passed": true,
+      "evidence": "invoice_repository.py holds all SQL, invoice_mail.py all SMTP, neither imports the other; sync_invoices() reaches both through parameters."
+    },
+    {
+      "text": "no-string-dispatch-chain: the refactored file has no if/elif chain over format string literals",
+      "passed": true,
+      "evidence": "regex `(elif|if)\\s+fmt\\s*==` finds no match; FORMATTERS dict + render() instead."
+    },
+    {
+      "text": "every-abstraction-justified: each new Protocol/ABC/interface has >=2 implementations in the output or the response states the seam it serves",
+      "passed": true,
+      "evidence": "Zero Protocol/ABC added. Seam is `Notifier = Callable[[str], None]` (rung 1); the two classes are concrete adapters, not interfaces."
+    },
+    {
+      "text": "secrets-not-replicated: 'hunter2' and the SMTP password are not still hardcoded literals in the refactored code",
+      "passed": false,
+      "evidence": "'hunter2' and 'apassword' still appear as literals (promoted to module constants in invoice_sync.py / invoice_mail.py). Same as the baseline run - see eval_feedback."
+    },
+    {
+      "text": "no-new-third-party-deps: imports limited to stdlib plus psycopg2/smtplib already used",
+      "passed": true,
+      "evidence": "imports outside stdlib: psycopg2 (lazy, already present) only."
+    },
+    {
+      "text": "diagnosis-names-principles: response states which letter each change serves",
+      "passed": true,
+      "evidence": "'## Diagnosis' maps S (four reasons to change), O (string-keyed chain), D (psycopg2/smtplib built inline) and states 'L / I - no matches. No subtypes, no interfaces. Nothing done for them.'"
+    },
+    {
+      "text": "declined-work-reported: response names at least one thing it deliberately did not abstract",
+      "passed": true,
+      "evidence": "'Deliberately not done - No Protocol/ABC/factory. Notifier and the repository each have one implementation plus a duck-typed test double; an interface would be a pass-through.'"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 2,
+    "total": 8,
+    "pass_rate": 0.75
+  },
+  "execution_metrics": {
+    "output_chars": 47072,
+    "files_created": [
+      "invoice_formatting.py",
+      "invoice_mail.py",
+      "invoice_repository.py",
+      "invoice_sync.py",
+      "response.md",
+      "test_invoice_sync.py",
+      "transcript.txt"
+    ],
+    "errors_encountered": 0
+  },
+  "timing": {
+    "total_duration_seconds": 263
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "secrets-not-replicated",
+        "reason": "Fails for both configs and conflicts with the prompt's own 'behaviour must stay identical' constraint - it measures a scope decision, not skill quality. Drop it or reword as 'flagged for a separate change'."
+      },
+      {
+        "assertion": "declined-work-reported",
+        "reason": "Passes for the old skill too because it accepts any 'deliberately not done' text. Should require a declined *abstraction* specifically."
+      }
+    ],
+    "overall": "eval-1's assertions are mostly non-discriminating; eval-2 and eval-3 carry the signal."
+  }
+}
