@@ -1,3 +1,0 @@
-Read daily_digest_context.md and notify.py. Write daily_digest.py that mails ops@corp the number of
-signups from yesterday, run once a day by cron. Follow SOLID principles — this repo cares about that,
-and the last person who contributed here got a lot of design review comments.

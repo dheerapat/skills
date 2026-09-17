@@ -1,2 +1,0 @@
-invoice_sync.py in this directory is a mess — it does too much and I'm scared to touch it.
-Refactor it so it follows SOLID principles. Behavior must stay identical. Don't touch anything else in the repo.

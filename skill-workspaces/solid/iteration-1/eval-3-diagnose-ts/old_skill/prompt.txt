@@ -1,8 +1,0 @@
-You have a skill to use. Read /home/dheeto/skills/skill-workspaces/solid-snapshot-old/SKILL.md first, and read any file under /home/dheeto/skills/skill-workspaces/solid-snapshot-old/references/ that it tells you to read. Then do the task following it.
-
-Work in the directory /home/dheeto/skills/skill-workspaces/solid/iteration-1/eval-3-diagnose-ts/old_skill/work — create/edit files there only.
-When finished, write your complete final answer to the user as /home/dheeto/skills/skill-workspaces/solid/iteration-1/eval-3-diagnose-ts/old_skill/response.md
-
-TASK:
-src.ts is up for design review. Walk me through every SOLID violation you can find in it, and what you'd
-do about each. Don't edit the file — I want the diagnosis before anyone touches code.
